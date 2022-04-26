@@ -87,8 +87,8 @@ type StringRuleDef = { type: 'string' } & StringRules;
 type ArrayRules = { length?: NumberRules };
 type ArrayRuleDef<T> = { type: 'array'; elements: RuleTypeDef<T> } & WithCommon<ArrayRules>;
 
-type RuleMapping<T extends object> = { [key in keyof T]: RuleDef<T[key]> };
-type RuleObj<T extends object> = { type: 'object'; keys: RuleMapping<T> } & RequiredRuleDef;
+type RuleMapping<T> = { [key in keyof T]-?: RuleTypeDef<T[key]> };
+type RuleObj<T> = { type: 'object'; keys: RuleMapping<T> } & RequiredRuleDef;
 type RuleDef<T = any> = RuleTypeDef<T> & RequiredRuleDef;
 
 type RuleTypeDef<T> = T extends boolean
@@ -197,12 +197,4 @@ const rules =
     return { check: check(conf, rules) }
   };
 
-const config = (conf: Config = {}) => ({ rules: rules(conf) });
-
-const data: any = {};
-const vali = config()
-  .rules<{ a: string; b: { c: string } }>({
-    a: { type: 'string', required: true },
-    b: { type: 'object', keys: { c: { type: 'string' } } },
-  })
-  .check(data);
+export const config = (conf: Config = {}) => ({ rules: rules(conf) });
