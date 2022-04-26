@@ -87,9 +87,9 @@ type StringRuleDef = { type: 'string' } & StringRules;
 type ArrayRules = { length?: NumberRules };
 type ArrayRuleDef<T> = { type: 'array'; elements: RuleTypeDef<T> } & WithCommon<ArrayRules>;
 
-type RuleMapping<T> = { [key in keyof T]-?: RuleTypeDef<T[key]> };
-type RuleObj<T> = { type: 'object'; keys: RuleMapping<T> } & RequiredRuleDef;
-type RuleDef<T = any> = RuleTypeDef<T> & RequiredRuleDef;
+type RuleMapping<T extends object> = { [key in keyof T]-?: RuleDef<T[key]> };
+type RuleObj<T extends object> = { type: 'object'; keys: RuleMapping<T> } & RequiredRuleDef;
+type RuleDef<T> = RuleTypeDef<T> & RequiredRuleDef;
 
 type RuleTypeDef<T> = T extends boolean
   ? BooleanRuleDef
@@ -103,7 +103,7 @@ type RuleTypeDef<T> = T extends boolean
   ? ArrayRuleDef<E>
   : T extends object
   ? RuleObj<T>
-  : never;
+  : any;
 
 type ErrorResult = { path: (string | number)[]; value: unknown; label?: string; code: string; };
 
@@ -115,7 +115,7 @@ type CheckArgs<T> = {
   path: (string | number)[];
 };
 
-const checkRequiredRules = ({ conf, rule, value, type, path }: CheckArgs<RuleDef>): ErrorResult[] => {
+const checkRequiredRules = <T>({ conf, rule, value, type, path }: CheckArgs<RuleDef<T>>): ErrorResult[] => {
   const { label } = rule;
   const nullable: TypeOf[] = ['null', 'undefined', 'nokey'];
   if (rule.required && nullable.includes(type)) {
@@ -125,7 +125,7 @@ const checkRequiredRules = ({ conf, rule, value, type, path }: CheckArgs<RuleDef
   return [];
 };
 
-const checkType = ({ conf, rule, value, type, path }: CheckArgs<RuleDef>): ErrorResult[] => {
+const checkType = <T>({ conf, rule, value, type, path }: CheckArgs<RuleDef<T>>): ErrorResult[] => {
   const { label } = rule;
   if (rule.type !== type) {
     const code = rule.typeErrorCode ?? conf.errorCode?.type ?? 'type';
