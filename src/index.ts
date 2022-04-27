@@ -53,19 +53,24 @@ type Limitation<T> = {
   oneOf?: T[];
 };
 type WithCondition<T> = T | { and: T[] } | { or: T[] };
-type WithCommon<T> = T & { [key in `${keyof T | 'type'}ErrorCode`]?: string } & { label?: string };
+type WithErrorCode<T> = T & { [key in `${keyof T | 'type'}ErrorCode`]?: string };
 
-type RequiredRules = { required?: boolean; notNull?: boolean; notUndefined?: boolean; requiredKey?: boolean };
-type RequiredRuleDef =  WithCommon<RequiredRules>;
+type RequiredRules = {
+  required?: boolean;
+  notNull?: boolean;
+  notUndefined?: boolean;
+  requiredKey?: boolean;
+};
+type BaseRule = { label?: string } & WithErrorCode<RequiredRules>;
 
 type BooleanRules = { ne?: boolean; eq?: boolean };
-type BooleanRuleDef = { type: 'boolean' } & WithCommon<BooleanRules>;
+type BooleanRuleDef = { type: 'boolean' } & WithErrorCode<BooleanRules> & BaseRule;
 
 type NumberRules = Limitation<number>;
-type NumberRuleDef = { type: 'number' } & WithCommon<NumberRules>;
+type NumberRuleDef = { type: 'number' } & WithErrorCode<NumberRules> & BaseRule;
 
 type BigIntRules = Limitation<bigint>;
-type BigIntRuleDef = { type: 'bigint' } & WithCommon<BigIntRules>;
+type BigIntRuleDef = { type: 'bigint' } & WithErrorCode<BigIntRules> & BaseRule;
 
 type StringBaseRules = Limitation<string> & {
   beginsWith?: string | null;
@@ -82,16 +87,15 @@ type StringRules =
   | { asNumber?: WithCondition<NumberRules> }
   | { asBigInt?: WithCondition<BigIntRules> };
 
-type StringRuleDef = { type: 'string' } & StringRules;
+type StringRuleDef = { type: 'string' } & StringRules & BaseRule;
 
 type ArrayRules = { length?: NumberRules };
-type ArrayRuleDef<T> = { type: 'array'; elements: RuleTypeDef<T> } & WithCommon<ArrayRules>;
+type ArrayRuleDef<T> = { type: 'array'; elements: RuleDef<T> } & WithErrorCode<ArrayRules> & BaseRule;
 
 type RuleMapping<T extends object> = { [key in keyof T]-?: RuleDef<T[key]> };
-type RuleObj<T extends object> = { type: 'object'; keys: RuleMapping<T> } & RequiredRuleDef;
-type RuleDef<T> = RuleTypeDef<T> & RequiredRuleDef;
+type RuleObj<T extends object> = { type: 'object'; label?: string; keys: RuleMapping<T> } & BaseRule;
 
-type RuleTypeDef<T> = T extends boolean
+type RuleDef<T> = T extends boolean
   ? BooleanRuleDef
   : T extends number
   ? NumberRuleDef
@@ -103,9 +107,11 @@ type RuleTypeDef<T> = T extends boolean
   ? ArrayRuleDef<E>
   : T extends object
   ? RuleObj<T>
-  : any;
+  : never;
 
-type ErrorResult = { path: (string | number)[]; value: unknown; label?: string; code: string; };
+type Rule = BooleanRuleDef | NumberRuleDef | BigIntRuleDef | StringRuleDef | ArrayRuleDef<any> | RuleObj<any>;
+
+type ErrorResult = { path: (string | number)[]; value: unknown; label?: string; code: string };
 
 type CheckArgs<T> = {
   conf: Config;
@@ -113,25 +119,6 @@ type CheckArgs<T> = {
   value: unknown;
   type: TypeOf;
   path: (string | number)[];
-};
-
-const checkRequiredRules = <T>({ conf, rule, value, type, path }: CheckArgs<RuleDef<T>>): ErrorResult[] => {
-  const { label } = rule;
-  const nullable: TypeOf[] = ['null', 'undefined', 'nokey'];
-  if (rule.required && nullable.includes(type)) {
-    const code = rule.requiredErrorCode ?? conf.errorCode?.required ?? 'required';
-    return [{ path, value, label, code }];
-  }
-  return [];
-};
-
-const checkType = <T>({ conf, rule, value, type, path }: CheckArgs<RuleDef<T>>): ErrorResult[] => {
-  const { label } = rule;
-  if (rule.type !== type) {
-    const code = rule.typeErrorCode ?? conf.errorCode?.type ?? 'type';
-    return [{ path, value, label, code }];
-  }
-  return [];
 };
 
 const checkBoolean = ({ conf, rule, value, type, path }: CheckArgs<BooleanRuleDef>): ErrorResult[] => {
@@ -151,6 +138,25 @@ const checkArray = <T>({ conf, rule, value, type, path }: CheckArgs<ArrayRuleDef
 };
 
 const objectKeys = <T extends object>(obj: T): (keyof T)[] => Object.keys(obj) as (keyof T)[];
+
+const checkRequiredRules = ({ conf, rule, value, type, path }: CheckArgs<BaseRule>): ErrorResult[] => {
+  const { label } = rule;
+  const nullable: TypeOf[] = ['null', 'undefined', 'nokey'];
+  if (rule.required && nullable.includes(type)) {
+    const code = rule.requiredErrorCode ?? conf.errorCode?.required ?? 'required';
+    return [{ path, value, label, code }];
+  }
+  return [];
+};
+
+const checkType = ({ conf, rule, value, type, path }: CheckArgs<Rule>): ErrorResult[] => {
+  const { label } = rule;
+  if (rule.type !== type) {
+    const code = rule.typeErrorCode ?? conf.errorCode?.type ?? 'type';
+    return [{ path, value, label, code }];
+  }
+  return [];
+};
 
 const checkObject = <T extends object>(args: CheckArgs<RuleObj<T>>): ErrorResult[] => {
   const { conf } = args;
@@ -185,7 +191,7 @@ const checkObject = <T extends object>(args: CheckArgs<RuleObj<T>>): ErrorResult
 const check =
   <T extends object>(conf: Config, rules: RuleMapping<T>) =>
   (value: unknown): ErrorResult[] => {
-    if (typeof value !== 'object') throw new Error("The check function takes an object as an argument.");
+    if (typeof value !== 'object') throw new Error('The check function takes an object as an argument.');
     const rule: RuleObj<T> = { type: 'object', keys: rules };
     return checkObject({ conf, rule, value, type: 'object', path: [] });
   };
@@ -193,8 +199,8 @@ const check =
 const rules =
   (conf: Config) =>
   <T extends object>(rules: RuleMapping<T>) => {
-    if (typeof rules !== 'object') throw new Error("The rules function takes an rule object as an argument.");
-    return { check: check(conf, rules) }
+    if (typeof rules !== 'object') throw new Error('The rules function takes an rule object as an argument.');
+    return { check: check(conf, rules) };
   };
 
 export const config = (conf: Config = {}) => ({ rules: rules(conf) });
