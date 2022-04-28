@@ -7,8 +7,8 @@ const ruleTypes = ['boolean', 'number', 'bigint', 'string', 'array', 'object'] a
 type RuleType = typeof ruleTypes[number];
 
 type ErrorCode<T> = T & { [key in `${keyof T}ErrorCode`]?: string };
-type AND<T> = { and: Conditional<T>[] };
-type OR<T> = { or: Conditional<T>[] };
+type AND<T> = { and: Conditional<T>[] } & { [key in keyof T]?: undefined };
+type OR<T> = { or: Conditional<T>[] } & { [key in keyof T]?: undefined };
 type Conditional<T> = T | AND<T> | OR<T>;
 type LimitationType = number | bigint | string;
 const limitationRuleTypes = ['number', 'bigint', 'string'] as const;

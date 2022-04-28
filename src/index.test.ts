@@ -1,12 +1,12 @@
-import { getTypeFromParent, config } from './index';
+import { getTypeFromParent, rules } from './index';
 
 type TestData = {
   a1: boolean;
   b1: number;
   c1: string;
   d1: string[];
-  e1: { a: boolean; b: number; };
-  f1: { a: boolean; b: number; }[];
+  e1: { a: boolean; b: number };
+  f1: { a: boolean; b: number }[];
   // a2?: boolean;
   // b2?: number;
   // c2?: string;
@@ -22,16 +22,19 @@ type TestData = {
 };
 
 const data: any = {};
-const results = config()
-  .rules<TestData>({
-    a1: { type: 'boolean' },
-    b1: { type: 'number' },
-    c1: { type: 'string' },
-    d1: { type: 'array', elements: { type: 'string' } },
-    e1: { type: 'object', keys: { a: { type: 'boolean'}, b: { type: 'number' } } },
-    f1: { type: 'array', elements: { type: 'object', keys: { a: { type: 'boolean' }, b:{type: 'number'} } } },
-  })
-  .check(data);
+const results = rules<TestData>({
+  a1: { type: 'boolean' },
+  b1: { type: 'number' },
+  c1: { type: 'string' },
+  d1: {
+    type: 'array',
+    and: [],
+    or: [],
+    elements: { type: 'string' },
+  },
+  e1: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } },
+  f1: { type: 'array', elements: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } } },
+}).check(data);
 
 describe('returnType', () => {
   test('boolean', () => expect(getTypeFromParent({ a: true }, 'a')).toBe('boolean'));
