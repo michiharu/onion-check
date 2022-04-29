@@ -1,4 +1,6 @@
-import { getTypeFromParent, rules } from './index';
+import { rules, functions, CheckArgs, StringRules } from './core';
+
+const { getTypeFromParent, checkStringAsNumber, createBigIntSafely } = functions;
 
 type TestData = {
   a1: boolean;
@@ -21,20 +23,24 @@ type TestData = {
   // f3: { a: boolean | null; b: number | null }[] | null;
 };
 
-const data: any = {};
 const results = rules<TestData>({
   a1: { type: 'boolean' },
   b1: { type: 'number' },
-  c1: { type: 'string' },
+  c1: { type: 'string', eq: 'aa', asNumber: { eq: 0 } },
   d1: {
     type: 'array',
-    and: [],
-    or: [],
+    // length: { eq: 0 },
+    // and: [
+    //   { length: { eq: 0 } }
+    // ],
+    // or: [
+    //   { length: { eq: 0 } }
+    // ],
     elements: { type: 'string' },
   },
   e1: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } },
   f1: { type: 'array', elements: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } } },
-}).check(data);
+}).check({});
 
 describe('returnType', () => {
   test('boolean', () => expect(getTypeFromParent({ a: true }, 'a')).toBe('boolean'));
@@ -47,4 +53,20 @@ describe('returnType', () => {
   test('undefined', () => expect(getTypeFromParent({ a: undefined }, 'a')).toBe('undefined'));
   test('nokey', () => expect(getTypeFromParent({ a: 'a' }, 'b')).toBe('nokey'));
   test('function', () => expect(getTypeFromParent({ a: () => 1 }, 'a')).toBe('function'));
+});
+
+describe('Number()', () => {
+  test('"10"', () => expect(Number('10')).toBe(10));
+  test('"text"', () => expect(Number('text')).toBe(NaN));
+});
+
+describe('createBigIntSafely()', () => {
+  test('"10"', () => expect(createBigIntSafely('10')).toBe(10n));
+  test('"text"', () => expect(createBigIntSafely('text')).toBe(undefined));
+});
+
+describe('checkStringAsBoolean', () => {
+  const args: Omit<CheckArgs<StringRules, string>, 'value'> = { rule: { asBoolean: {} }, path: [] };
+  test('"10"', () => expect(checkStringAsNumber({ ...args, value: '10' })).toEqual([]));
+  test('"text"', () => expect(checkStringAsNumber({ ...args, value: 'text' })).toEqual([]));
 });
