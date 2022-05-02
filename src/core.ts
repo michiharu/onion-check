@@ -1,10 +1,29 @@
 import './extensions/array';
 import './extensions/set';
 
-export type ObjData = { [key in string]: Data };
-export type Data = boolean | number | bigint | string | Data[] | ObjData;
+export type ObjData = { [key in string]?: Data };
+export type Data = null | undefined | boolean | number | bigint | string | Data[] | ObjData;
 
-const ruleTypes = ['boolean', 'number', 'bigint', 'string', 'array', 'object'] as const;
+export type ArrayPath<T extends Data[]> =
+  | [number] //
+  | T extends (infer E)[]
+  ? E extends Data[]
+    ? [number] | [number, ...ArrayPath<E>]
+    : E extends ObjData
+    ? [number] | [number, ...ObjectPath<E>]
+    : never
+  : never;
+
+export type ObjectValue<T extends object> = T[keyof T];
+
+export type ObjectPath<T extends ObjData> = ObjectValue<{
+  [key in keyof T]:
+    | [key] //
+    | (T[key] extends ObjData ? [key, ...ObjectPath<T[key]>] : never)
+    | (T[key] extends Data[] ? [key, ...ArrayPath<T[key]>] : never);
+}>;
+
+const ruleTypes = ['boolean', 'number', 'bigint', 'string', 'array', 'object', 'ignore'] as const;
 export type RuleType = typeof ruleTypes[number];
 export type ErrorCode<T> = T & { [key in `${keyof T}ErrorCode`]?: string };
 export type AND<T> = { and?: Conditional<T>[] } & { or?: undefined };
@@ -54,15 +73,17 @@ export type StringRules = StringBaseRules &
   }> & { length?: LimitationRules<number> };
 export type StringRuleDef = Rule<'string', Conditional<StringRules>>;
 
-export type Element<T, S> = T extends (infer E)[] ? (E extends S ? E : never) : never;
-export type ElementRule<T> = RuleDef<Element<T, Data>>;
-export type ArrayMetaRules = { length: Conditional<NumberRules> };
+export type ArrayElement<T, S> = T extends (infer E)[] ? (E extends S ? E : never) : never;
+export type ElementRule<T> = RuleDef<ArrayElement<T, Data>>;
+export type ArrayMetaRules = { length?: Conditional<NumberRules> };
 export type ArrayRules<T extends Data[]> = ArrayMetaRules & { elements: ElementRule<T> };
 export type ArrayRuleDef<T extends Data[]> = Rule<'array', ArrayRules<T>>;
 
 export type RuleMapping<T extends ObjData> = { [key in keyof T]-?: RuleDef<T[key]> };
 export type ObjectMetaRules = ErrorCode<{ disallowUndefinedKeys?: boolean }>;
 export type ObjectRuleDef<T extends ObjData> = Rule<'object', ObjectMetaRules & { keys: RuleMapping<T> }>;
+
+export type IgnoreRuleDef = Rule<'ignore', any>;
 
 export type RuleDef<T extends Data = Data> = T extends boolean
   ? BooleanRuleDef
@@ -76,10 +97,11 @@ export type RuleDef<T extends Data = Data> = T extends boolean
   ? ArrayRuleDef<T>
   : T extends ObjData
   ? ObjectRuleDef<T>
-  : never;
+  : IgnoreRuleDef;
 
 export type DefaultRules = {
   existence?: ExistenceRules;
+  array?: ArrayMetaRules;
   object?: ObjectMetaRules;
 };
 
@@ -87,6 +109,7 @@ export type ErrorResult = { path: (string | number)[]; value: unknown; label?: s
 
 export type CheckArgs<R, V> = {
   rule: R;
+  type: TypeOf;
   value: V;
   path: (string | number)[];
   label?: string;
@@ -202,7 +225,7 @@ const checkLimitations = <T extends number | bigint | string>(
   return errors;
 };
 
-const checkRequiredRule = (type: TypeOf, { rule, value, path }: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
+const checkRequiredRule = ({ rule, type, value, path }: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
   const required: boolean = rule.required ?? false;
   if (!required) return [];
   if (!(nullableTypes as unknown as TypeOf).includes(type)) return [];
@@ -211,8 +234,7 @@ const checkRequiredRule = (type: TypeOf, { rule, value, path }: CheckArgs<RuleDe
   return [{ code, value, path, label }];
 };
 
-const checkNullableDisallowRule = (type: TypeOf, args: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
-  const { rule, value, path } = args;
+const checkNullableDisallowRule = ({ rule, type, value, path }: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
   if (!isNullable(type)) return [];
   switch (type) {
     case 'undefined': {
@@ -239,18 +261,36 @@ const checkNullableDisallowRule = (type: TypeOf, args: CheckArgs<RuleDef, unknow
   }
 };
 
-const checkExistenceRules = (type: TypeOf, args: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
-  const requiredErrors = checkRequiredRule(type, args);
+const checkExistenceRules = (args: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
+  const requiredErrors = checkRequiredRule(args);
   if (requiredErrors.length !== 0) return requiredErrors;
-  const disallowErrors = checkNullableDisallowRule(type, args);
+  const disallowErrors = checkNullableDisallowRule(args);
   return disallowErrors;
 };
 
-const checkType = (type: TypeOf, { rule, value, path }: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
+const checkType = ({ rule, type, value, path }: CheckArgs<RuleDef, unknown>): ErrorResult[] => {
   if (rule.type === type) return [];
   const code = rule.typeErrorCode ?? 'type';
   const { label } = rule;
   return [{ code, value, path, label }];
+};
+
+const check = <T>(args: CheckArgs<RuleDef<T>, T>): ErrorResult[] => {
+  const { rule, value } = args;
+
+  const requiredErrors = checkExistenceRules(args);
+  if (requiredErrors.length !== 0) return requiredErrors;
+
+  const typeErrors = checkType(args);
+  if (typeErrors.length !== 0) return typeErrors;
+
+  if (rule.type === 'boolean' && isBoolean(value)) return checkBoolean({ ...args, rule, value });
+  if (rule.type === 'number' && isNumber(value)) return checkNumber({ ...args, rule, value });
+  if (rule.type === 'bigint' && isBigint(value)) return checkBigInt({ ...args, rule, value });
+  if (rule.type === 'string' && isString(value)) return checkString({ ...args, rule, value });
+  if (rule.type === 'array' && isArray(value)) return checkArray({ ...args, rule, value });
+  if (rule.type === 'object' && isObject(value)) return checkObject({ ...args, rule, value });
+  throw new Error();
 };
 
 const checkBoolean = (args: CheckArgs<RuleDef<boolean>, boolean>): ErrorResult[] => checkEqualOrNotEqual(args);
@@ -358,30 +398,17 @@ const checkArrayMetaRules = (args: CheckArgs<NumberRules, Data[]>): ErrorResult[
 
 const checkArray = <T extends Data[]>(args: CheckArgs<RuleDef<T>, T>): ErrorResult[] => {
   const errors = checkConditionalRules({ ...args, rule: args.rule.length }, checkArrayMetaRules);
-  const rule = args.rule.elements;
+
   const childrenErrors = args.value.flatMap((value, index) => {
-    const type = getType(value);
-    const path = args.path.concat([index]);
-    const requiredErrors = checkExistenceRules(type, { rule, value, path });
-    if (requiredErrors.length !== 0) return requiredErrors;
-
-    const typeErrors = checkType(type, { rule, value, path });
-    if (typeErrors.length !== 0) return typeErrors;
-
-    if (rule.type === 'boolean' && isBoolean(value)) return checkBoolean({ rule, value, path });
-    if (rule.type === 'number' && isNumber(value)) return checkNumber({ rule, value, path });
-    if (rule.type === 'bigint' && isBigint(value)) return checkBigInt({ rule, value, path });
-    if (rule.type === 'string' && isString(value)) return checkString({ rule, value, path });
-    if (rule.type === 'array' && isArray(value)) return checkArray({ rule, value, path });
-    if (rule.type === 'object' && isObject(value)) return checkObject({ rule, value, path });
-    throw new Error();
+    return check({ rule: args.rule.elements, type: getType(value), value, path: args.path.concat([index]) });
   });
+
   return errors.concat(childrenErrors);
 };
 
 const objectKeys = <T extends object>(obj: T): (keyof T)[] => Object.keys(obj) as (keyof T)[];
 
-const checkObjectDisallowUndefinedKeys = (args: CheckArgs<RuleDef<ObjData>, object>): ErrorResult[] => {
+const checkObjectDisallowUndefinedKeys = (args: CheckArgs<RuleDef<ObjData>, ObjData>): ErrorResult[] => {
   const { rule, value, path } = args;
   const disallowUndefinedKeys: boolean = rule.disallowUndefinedKeys ?? false;
   if (!disallowUndefinedKeys) return [];
@@ -393,7 +420,7 @@ const checkObjectDisallowUndefinedKeys = (args: CheckArgs<RuleDef<ObjData>, obje
   return [{ code, value, path, label }];
 };
 
-const checkObject = (args: CheckArgs<RuleDef<ObjData>, object>): ErrorResult[] => {
+const checkObject = (args: CheckArgs<RuleDef<ObjData>, ObjData>): ErrorResult[] => {
   const errors: ErrorResult[] = [checkObjectDisallowUndefinedKeys(args)].flatMap((error) => error);
 
   const childrenErrors = objectKeys(args.rule.keys).flatMap((key) => {
@@ -401,84 +428,109 @@ const checkObject = (args: CheckArgs<RuleDef<ObjData>, object>): ErrorResult[] =
     const value = args.value[key];
     const type = getTypeFromParent(args.value, key);
     const path = args.path.concat([key]);
-
-    const requiredErrors = checkExistenceRules(type, { rule, value, path });
-    if (requiredErrors.length !== 0) return requiredErrors;
-
-    const typeErrors = checkType(type, { rule, value, path });
-    if (typeErrors.length !== 0) return typeErrors;
-
-    if (rule.type === 'boolean' && isBoolean(value)) return checkBoolean({ rule, value, path });
-    if (rule.type === 'number' && isNumber(value)) return checkNumber({ rule, value, path });
-    if (rule.type === 'bigint' && isBigint(value)) return checkBigInt({ rule, value, path });
-    if (rule.type === 'string' && isString(value)) return checkString({ rule, value, path });
-    if (rule.type === 'array' && isArray(value)) return checkArray({ rule, value, path });
-    if (rule.type === 'object' && isObject(value)) return checkObject({ rule, value, path });
-    throw new Error();
+    return check({ rule, type, value, path });
   });
   return errors.concat(childrenErrors);
 };
 
-const check =
-  <T extends ObjData>(rule: RuleMapping<T>) =>
-  (value: ObjData): ErrorResult[] => {
-    if (typeof value !== 'object') throw new Error('The check function takes an object as an argument.');
-    return checkObject({ rule: { type: 'object', keys: rule }, value, path: [] });
-  };
-
-const applyConfigToArrayRuleDef = (conf: DefaultRules, rule: RuleDef<Data[]>): RuleDef<Data[]> => {
+const applyDefaultRulesToRuleDef = <T>(rule: RuleDef, conf: DefaultRules): RuleDef => {
   const result = { ...rule };
   objectKeys(conf.existence).forEach((key) => {
     if (result[key] !== undefined) (result[key] as unknown) = conf.existence[key];
   });
-  switch (result.elements.type) {
-    case 'object':
-      result.elements = applyConfigToObjectRuleDef(conf, result.elements);
-      break;
-    case 'array':
-      result.elements = applyConfigToArrayRuleDef(conf, result.elements);
-      break;
-    default:
-      objectKeys(conf.existence).forEach((key) => {
-        if (result.elements[key] !== undefined) (result.elements[key] as unknown) = conf.existence[key];
+  switch (result.type) {
+    case 'object': {
+      objectKeys(conf.object).forEach((key) => {
+        if (result[key] !== undefined) (result[key] as unknown) = conf.object[key];
+      });
+      objectKeys(result.keys).forEach((key) => {
+        result.keys[key] = applyDefaultRulesToRuleDef(result.keys[key], conf);
       });
       break;
+    }
+    case 'array': {
+      objectKeys(conf.array).forEach((key) => {
+        if (result[key] !== undefined) (result[key] as unknown) = conf.array[key];
+      });
+      result.elements = applyDefaultRulesToRuleDef(result.elements, conf);
+      break;
+    }
   }
   return result;
 };
 
-const applyConfigToObjectRuleDef = (conf: DefaultRules, rule: RuleDef<ObjData>): RuleDef<ObjData> => {
-  const result = { ...rule };
-  objectKeys(conf.existence).forEach((key) => {
-    if (result[key] !== undefined) (result[key] as unknown) = conf.existence[key];
-  });
-  objectKeys(conf.object).forEach((key) => {
-    if (result[key] !== undefined) (result[key] as unknown) = conf.object[key];
-  });
-  objectKeys(result.keys).forEach((key) => {
-    const r = result.keys[key];
-    switch (r.type) {
-      case 'object':
-        result.keys[key] = applyConfigToObjectRuleDef(conf, r);
-        break;
-      case 'array':
-        result.keys[key] = applyConfigToArrayRuleDef(conf, r);
-        break;
-      default:
-        objectKeys(conf.existence).forEach((ruleName) => {
-          if (result.keys[key][ruleName] !== undefined)
-            (result.keys[key][ruleName] as unknown) = conf.existence[ruleName];
-        });
-        break;
+const testEntry =
+  <T>(rule: RuleDef<T>, path: (string | number)[] = []) =>
+  (
+    value: T
+  ) => {
+  };
+
+testEntry<string>({ type: 'string' })('string');
+testEntry<{}>({ type: 'object', keys: {} })({});
+
+const checkEntry =
+  <T>(rule: RuleDef<T>, path: (string | number)[] = []) =>
+  (
+    value: T
+  ): {
+    isSuccess: () => boolean;
+    isFailure: () => boolean;
+    errors: () => ErrorResult[];
+  } => {
+    const errors = check({ rule, type: getType(value), value, path });
+    return {
+      isSuccess: () => errors.length === 0,
+      isFailure: () => errors.length !== 0,
+      errors: () => errors,
+    };
+  };
+
+  const getTargetRule = <T>(rule: RuleDef<T>, path: (string | number)[]) => {
+    const next = rule.type === 'array' ? rule.elements : rule.type === 'object' ? rule.keys[path[0]] : undefined;
+    if (!next) throw new Error();
+    if (path.length === 1) {
+      return next;
+    } else {
+      return getTargetRule(next, path.slice(1));
     }
-  });
-  return result;
-};
+  };
+  
+  const arrayTarget =
+    <T extends Data[]>(rule: RuleDef<T>) =>
+    (...p: ArrayPath<T>) => {
+      const path = p as (string | number)[];
+      const target = getTargetRule(rule, path);
+      return { check: checkEntry(target, path) };
+    };
+  
+  const objectTarget =
+    <T extends ObjData>(rule: RuleDef<T>) =>
+    (...p: ObjectPath<T>) => {
+      const path = p as (string | number)[];
+      const target = getTargetRule(rule, path);
+      return { check: checkEntry(target, path) };
+    };
+  
 
-const setRule = <T extends ObjData>(ruleDef: RuleMapping<T>, conf: DefaultRules = {}) => {
-  if (typeof ruleDef !== 'object') throw new Error('The setRule function takes an rule object as an argument.');
+const setRule = <T>(ruleDef: RuleDef<T>, defaultRules: DefaultRules = {}) => {
+  const rule = applyDefaultRulesToRuleDef(ruleDef, defaultRules);
 
-  return { check: check(ruleDef) };
+  if (rule.type === 'array') {
+    return {
+      check: checkEntry(rule as RuleDef<T>),
+      target: arrayTarget(rule),
+    };
+  }
+  if (rule.type === 'object') {
+    return {
+      check: checkEntry(rule),
+      target: objectTarget(rule),
+    };
+  }
+  return {
+    check: checkEntry(rule),
+  };
 };
 
 const applyConfigToDefaultRules = (conf: DefaultRules, defaultRules: DefaultRules): DefaultRules => {
@@ -501,7 +553,7 @@ const applyConfigToDefaultRules = (conf: DefaultRules, defaultRules: DefaultRule
 
 const setRuleFromConfig =
   (conf: DefaultRules) =>
-  <T extends ObjData>(ruleDef: RuleMapping<T>, defaultRules: DefaultRules = {}) => {
+  <T>(ruleDef: RuleDef<T>, defaultRules: DefaultRules = {}) => {
     return setRule(ruleDef, applyConfigToDefaultRules(conf, defaultRules));
   };
 
@@ -516,6 +568,7 @@ export const functions = {
   checkStringAsBoolean,
   checkStringAsNumber,
   createBigIntSafely,
+  setRule,
 };
 
 export default { config, setRule };

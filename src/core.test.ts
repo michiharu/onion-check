@@ -1,6 +1,6 @@
-import { rules, functions, CheckArgs, StringRules } from './core';
+import { functions, CheckArgs, StringRules, ObjectPath, Data } from './core';
 
-const { getTypeFromParent, checkStringAsNumber, createBigIntSafely } = functions;
+const { getTypeFromParent, checkStringAsNumber, createBigIntSafely, setRule } = functions;
 
 type TestData = {
   a1: boolean;
@@ -23,24 +23,9 @@ type TestData = {
   // f3: { a: boolean | null; b: number | null }[] | null;
 };
 
-const results = rules<TestData>({
-  a1: { type: 'boolean' },
-  b1: { type: 'number' },
-  c1: { type: 'string', eq: 'aa', asNumber: { eq: 0 } },
-  d1: {
-    type: 'array',
-    // length: { eq: 0 },
-    // and: [
-    //   { length: { eq: 0 } }
-    // ],
-    // or: [
-    //   { length: { eq: 0 } }
-    // ],
-    elements: { type: 'string' },
-  },
-  e1: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } },
-  f1: { type: 'array', elements: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } } },
-}).check({});
+type TestPath = ObjectPath<TestData>;
+const testObjTarget = <T>(...p: ObjectPath<T>) => {};
+testObjTarget<TestData>('d1')
 
 describe('returnType', () => {
   test('boolean', () => expect(getTypeFromParent({ a: true }, 'a')).toBe('boolean'));
@@ -66,7 +51,7 @@ describe('createBigIntSafely()', () => {
 });
 
 describe('checkStringAsBoolean', () => {
-  const args: Omit<CheckArgs<StringRules, string>, 'value'> = { rule: { asBoolean: {} }, path: [] };
+  const args: Omit<CheckArgs<StringRules, string>, 'value'> = { type: 'string', rule: { asBoolean: {} }, path: [] };
   test('"10"', () => expect(checkStringAsNumber({ ...args, value: '10' })).toEqual([]));
   test('"text"', () => expect(checkStringAsNumber({ ...args, value: 'text' })).toEqual([]));
 });
