@@ -1,4 +1,4 @@
-import { functions, CheckArgs, StringRules, ObjectPath, Data } from './core';
+import { functions, CheckArgs, StringRules, ObjectPath, Data } from './index';
 
 const { getTypeFromParent, checkStringAsNumber, createBigIntSafely, setRule } = functions;
 
@@ -9,18 +9,6 @@ type TestData = {
   d1: string[];
   e1: { a: boolean; b: number };
   f1: { a: boolean; b: number }[];
-  // a2?: boolean;
-  // b2?: number;
-  // c2?: string;
-  // d2?: string[];
-  // e2?: { a?: boolean; b?: number };
-  // f2?: { a?: boolean; b?: number; }[];
-  // a3: boolean | null;
-  // b3: number | null;
-  // c3: string | null;
-  // d3: string[] | null;
-  // e3: { a: boolean | null; b: number | null } | null;
-  // f3: { a: boolean | null; b: number | null }[] | null;
 };
 
 setRule<TestData>({
@@ -33,13 +21,7 @@ setRule<TestData>({
     e1: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } },
     f1: { type: 'array', elements: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } } },
   },
-}).check({a1: true, b1: 0, c1: '', d1: [], e1: { a: true, b: 0 }, f1: []});
-
-setRule<string[]>({ type: 'array', elements: { type: 'string' } }).check(['string'])
-
-type TestPath = ObjectPath<TestData>;
-const testObjTarget = <T>(...p: ObjectPath<T>) => {};
-testObjTarget<TestData>('d1');
+}).check({ a1: true, b1: 0, c1: '', d1: [], e1: { a: true, b: 0 }, f1: [] });
 
 describe('returnType', () => {
   test('boolean', () => expect(getTypeFromParent({ a: true }, 'a')).toBe('boolean'));
