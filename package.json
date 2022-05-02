@@ -26,6 +26,7 @@
   ],
   "scripts": {
     "build": "rollup -c",
+    "tsc": "tsc --noEmit",
     "doc": "typedoc --plugin typedoc-plugin-markdown --out docs src/index.ts",
     "test": "jest"
   },

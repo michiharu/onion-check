@@ -23,9 +23,23 @@ type TestData = {
   // f3: { a: boolean | null; b: number | null }[] | null;
 };
 
+setRule<TestData>({
+  type: 'object',
+  keys: {
+    a1: { type: 'boolean' },
+    b1: { type: 'number' },
+    c1: { type: 'string' },
+    d1: { type: 'array', elements: { type: 'string' } },
+    e1: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } },
+    f1: { type: 'array', elements: { type: 'object', keys: { a: { type: 'boolean' }, b: { type: 'number' } } } },
+  },
+}).check({a1: true, b1: 0, c1: '', d1: [], e1: { a: true, b: 0 }, f1: []});
+
+setRule<string[]>({ type: 'array', elements: { type: 'string' } }).check(['string'])
+
 type TestPath = ObjectPath<TestData>;
 const testObjTarget = <T>(...p: ObjectPath<T>) => {};
-testObjTarget<TestData>('d1')
+testObjTarget<TestData>('d1');
 
 describe('returnType', () => {
   test('boolean', () => expect(getTypeFromParent({ a: true }, 'a')).toBe('boolean'));
