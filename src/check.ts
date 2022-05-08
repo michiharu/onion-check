@@ -50,27 +50,68 @@ const checkConditionalRules: CheckConditionalRules = (arg, checker) => {
   return checker({ ...arg, rule });
 };
 
-const checkEqNe: CheckEqNe = (arg) => {
+const checkEq: CheckEqNe = (arg) => {
   const { rule, value } = arg;
-  const errors: ErrorResult[] = [];
-  if (rule.eq !== undefined && !(rule.eq === value)) errors.push(createErrorResult('eq', arg));
-  if (rule.ne !== undefined && !(rule.ne !== value)) errors.push(createErrorResult('ne', arg));
-  return errors;
+  if (rule.eq === undefined) return [];
+  return rule.eq === value ? [] : [createErrorResult('eq', arg)];
 };
 
-const checkLimit: CheckLimit = <T>(arg) => {
-  // eq?: T; ne?: T;
-  const errors: ErrorResult[] = checkEqNe(arg);
+const checkNe: CheckEqNe = (arg) => {
   const { rule, value } = arg;
-  if (rule.ge !== undefined && !(rule.ge <= value)) errors.push(createErrorResult('ge', arg));
-  if (rule.gt !== undefined && !(rule.gt < value)) errors.push(createErrorResult('gt', arg));
-  if (rule.le !== undefined && !(rule.le >= value)) errors.push(createErrorResult('le', arg));
-  if (rule.lt !== undefined && !(rule.lt > value)) errors.push(createErrorResult('lt', arg));
-  if (rule.between !== undefined && !(rule.between[0] < value && value < rule.between[1])) {
-    errors.push(createErrorResult('between', arg));
-  }
-  if (rule.oneOf !== undefined && !rule.oneOf.includes(value as T)) errors.push(createErrorResult('oneOf', arg));
-  return errors;
+  if (rule.ne === undefined) return [];
+  return rule.ne !== value ? [] : [createErrorResult('ne', arg)];
+};
+
+const checkEqNe: CheckEqNe = (arg) => {
+  return [checkEq(arg), checkNe(arg)].flatMap((errors) => errors);
+};
+
+const checkGe: CheckLimit = (arg) => {
+  const { rule, value } = arg;
+  if (rule.ge === undefined) return [];
+  return rule.ge <= value ? [] : [createErrorResult('ge', arg)];
+};
+
+const checkGt: CheckLimit = (arg) => {
+  const { rule, value } = arg;
+  if (rule.gt === undefined) return [];
+  return rule.gt < value ? [] : [createErrorResult('gt', arg)];
+};
+
+const checkLe: CheckLimit = (arg) => {
+  const { rule, value } = arg;
+  if (rule.le === undefined) return [];
+  return rule.le >= value ? [] : [createErrorResult('le', arg)];
+};
+
+const checkLt: CheckLimit = (arg) => {
+  const { rule, value } = arg;
+  if (rule.lt === undefined) return [];
+  return rule.lt > value ? [] : [createErrorResult('lt', arg)];
+};
+
+const checkBetween: CheckLimit = (arg) => {
+  const { rule, value } = arg;
+  if (rule.between === undefined) return [];
+  return rule.between[0] < value && value < rule.between[1] ? [] : [createErrorResult('between', arg)];
+};
+
+const checkOneOf: CheckLimit = (arg) => {
+  const { rule, value } = arg;
+  if (rule.oneOf === undefined) return [];
+  return rule.oneOf.includes(value as any) ? [] : [createErrorResult('oneOf', arg)];
+};
+
+const checkLimit: CheckLimit = (arg) => {
+  return [
+    checkEqNe(arg),
+    checkGe(arg),
+    checkGt(arg),
+    checkLe(arg),
+    checkLt(arg),
+    checkBetween(arg),
+    checkOneOf(arg),
+  ].flatMap((errors) => errors);
 };
 
 const isNullable = (type: TypeOf): type is NullableType => (nullableTypes as unknown as TypeOf).includes(type);
@@ -118,31 +159,45 @@ const checkNumber: CheckNumber = (arg) => checkConditionalRules(arg, checkLimit)
 
 const checkBigInt: CheckBigInt = (arg) => checkConditionalRules(arg, checkLimit);
 
+const checkBeginsWith: CheckStringBaseRules = (arg) => {
+  const { rule, value } = arg;
+  if (rule.beginsWith === undefined) return [];
+  return value.startsWith(rule.beginsWith) ? [] : [createErrorResult('beginsWith', arg)];
+};
+
+const checkContains: CheckStringBaseRules = (arg) => {
+  const { rule, value } = arg;
+  if (rule.contains === undefined) return [];
+  return value.includes(rule.contains) ? [] : [createErrorResult('contains', arg)];
+};
+
+const checkNotContains: CheckStringBaseRules = (arg) => {
+  const { rule, value } = arg;
+  if (rule.notContains === undefined) return [];
+  return !value.includes(rule.notContains) ? [] : [createErrorResult('notContains', arg)];
+};
+
+const checkPattern: CheckStringBaseRules = (arg) => {
+  const { rule, value } = arg;
+  if (rule.pattern === undefined) return [];
+  return rule.pattern.test(value) ? [] : [createErrorResult('pattern', arg)];
+};
+
+const checkNotPattern: CheckStringBaseRules = (arg) => {
+  const { rule, value } = arg;
+  if (rule.notPattern === undefined) return [];
+  return !rule.notPattern.test(value) ? [] : [createErrorResult('notPattern', arg)];
+};
+
 const checkStringBaseRules: CheckStringBaseRules = (arg) => {
-  const errors = checkLimit(arg);
-  const { rule, value: unknownValue, path, label } = arg;
-  const value = unknownValue as string;
-  // beginsWith?: string;
-  if (rule.beginsWith !== undefined && !value.startsWith(rule.beginsWith)) {
-    errors.push(createErrorResult('beginsWith', arg));
-  }
-  // contains?: string;
-  if (rule.contains !== undefined && !value.includes(rule.contains)) {
-    errors.push(createErrorResult('contains', arg));
-  }
-  // notContains?: string;
-  if (rule.notContains !== undefined && value.includes(rule.notContains)) {
-    errors.push(createErrorResult('notContains', arg));
-  }
-  // pattern?: RegExp;
-  if (rule.pattern !== undefined && !rule.pattern.test(value)) {
-    errors.push(createErrorResult('pattern', arg));
-  }
-  // notPattern?: RegExp;
-  if (rule.notPattern !== undefined && rule.notPattern.test(value)) {
-    errors.push(createErrorResult('notPattern', arg));
-  }
-  return errors;
+  return [
+    checkLimit(arg),
+    checkBeginsWith(arg),
+    checkContains(arg),
+    checkNotContains(arg),
+    checkPattern(arg),
+    checkNotPattern(arg),
+  ].flatMap((errors) => errors);
 };
 
 const checkStringAsBoolean: CheckStringRules = (arg) => {
@@ -207,7 +262,7 @@ const checkArray: CheckArray = (arg) => {
   const childrenErrors = (arg.value as []).flatMap((value, index) => {
     const rule = arg.rule.elements;
     const type = getType(value);
-    const path = arg.path.concat([index])
+    const path = arg.path.concat([index]);
     return check({ rule, type, value, path });
   });
   return errors.concat(childrenErrors);

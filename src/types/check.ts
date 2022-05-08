@@ -33,7 +33,7 @@ export type CheckEqNe = <T extends EqNeType>(arg: Arg<EqNeRules<T>, unknown>) =>
 export type CheckLimit = <T extends LimitType>(arg: Arg<LimitRules<T>, unknown>) => ErrorResult[];
 export type CheckBase = CheckFunction<BaseRuleDef>;
 
-export type CheckStringBaseRules = CheckFunction<StringBaseRules>;
+export type CheckStringBaseRules = CheckFunction<StringBaseRules, string>;
 export type CheckStringRules = CheckFunction<StringRules, string>;
 
 export type Check = CheckFunction<RuleDef>;
