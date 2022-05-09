@@ -140,13 +140,3 @@ export const config = (conf: DefaultRules) => {
     throw new Error('The config function takes an config object as an argument.');
   return { createValidator: createValidatorFromConfig(conf) };
 };
-
-export default createValidator;
-
-const onion = config({});
-
-const validatorA = onion.createValidator<{ a: string }>({
-  type: 'object',
-  keys: { a: { type: 'string' } },
-});
-validatorA.check(1 as any);
