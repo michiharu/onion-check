@@ -1,6 +1,6 @@
 import { ErrorResult } from './check';
 import { DefaultRules, RuleDef } from './rule-def';
-import { TargetPath } from './target-path';
+import { TargetPath, TargetType } from './target-path';
 
 type CheckResult = {
   isSuccess: () => boolean;
@@ -11,7 +11,7 @@ type CheckResult = {
 export type CheckEntry<T> = (rule: RuleDef<T>, path: (string | number)[]) => Check<T>;
 export type Check<T> = (value: T) => CheckResult;
 
-export type Target<T> = (...p: TargetPath<T>) => { check: Check<T> };
+export type Target<T> = <P extends TargetPath<T>>(...p: P) => { check: Check<TargetType<T, P>> };
 
 export type Validator<T> = {
   check: Check<T>;

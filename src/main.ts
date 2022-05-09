@@ -140,3 +140,13 @@ export const config = (conf: DefaultRules) => {
     throw new Error('The config function takes an config object as an argument.');
   return { createValidator: createValidatorFromConfig(conf) };
 };
+
+const valid = createValidator<{ a: string }>({ type: 'object', keys: { a: { type: 'string' } } });
+valid.check({ a: '' });
+valid.target('a').check('string');
+createValidator<{ a: string }[]>({
+  type: 'array',
+  elements: { type: 'object', keys: { a: { type: 'string' } } },
+})
+  .target(0)
+  .check({ a: 'a' });

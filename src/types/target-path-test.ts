@@ -1,4 +1,4 @@
-import { TargetPath } from './target-path';
+import { TargetPath, TargetType } from './target-path';
 import {
   TestBool,
   TestComplex1,
@@ -26,6 +26,11 @@ assertEqualType<ResultStrArray, [number]>(true);
 
 type ResultNestedArray = TargetPath<TestNestedArray>;
 assertEqualType<ResultNestedArray, [number] | [number, number]>(true);
+type ResultNestedArrayTargetType1 = TargetType<TestNestedArray, [number]>;
+const r1: ResultNestedArrayTargetType1 = [1, 2, 3]
+type ResultNestedArrayTargetType2 = TargetType<TestNestedArray, [number, number]>;
+const r2: ResultNestedArrayTargetType2 = 1
+
 
 type ResultObj = TargetPath<TestObj>;
 assertEqualType<ResultObj, ['bool'] | ['num'] | ['str']>(true);

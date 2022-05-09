@@ -11,3 +11,16 @@ export type TargetPath<T> = T extends (infer E)[]
         | (T[key] extends object | [] ? [key, ...TargetPath<T[key]>] : never);
     }>
   : never;
+
+export type TargetType<T, P> = //
+  T extends (infer E)[]
+    ? P extends [number, ...infer Tail]
+      ? TargetType<E, Tail>
+      : T
+    : T extends object
+    ? P extends [infer Head, ...infer Tail]
+      ? Head extends keyof T
+        ? TargetType<T[Head], Tail>
+        : never
+      : T
+    : T;
