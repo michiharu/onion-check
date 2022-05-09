@@ -1,10 +1,10 @@
 import SetEx from './extensions/set';
 import {
-  Check,
   CheckArray,
   CheckBase,
   CheckBigInt,
   CheckBoolean,
+  CheckByType,
   CheckConditionalRules,
   CheckEqNe,
   CheckLimit,
@@ -268,7 +268,7 @@ const checkArray: CheckArray = (arg) => {
     const type = getType(value);
     const path = arg.path.concat([index]);
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return check({ rule, type, value, path });
+    return checkByType({ rule, type, value, path });
   });
   return errors.concat(childrenErrors);
 };
@@ -292,12 +292,12 @@ const checkObject: CheckObject = (arg) => {
     const type = getTypeFromParent(arg.value, key);
     const path = arg.path.concat([key]);
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return check({ rule, type, value, path });
+    return checkByType({ rule, type, value, path });
   });
   return errors.concat(childrenErrors);
 };
 
-export const check: Check = (arg) => {
+export const checkByType: CheckByType = (arg) => {
   const { rule, value } = arg;
   if (rule.type === 'ignore') return [];
 

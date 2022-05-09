@@ -47,7 +47,7 @@ export type CheckBase = CheckFunction<BaseRuleDef>;
 export type CheckStringBaseRules = CheckFunction<StringBaseRules, string>;
 export type CheckStringRules = CheckFunction<StringRules, string>;
 
-export type Check = CheckFunction<RuleDef>;
+export type CheckByType = CheckFunction<RuleDef>;
 export type CheckBoolean = CheckFunction<BooleanRuleDef>;
 export type CheckNumber = CheckFunction<NumberRuleDef>;
 export type CheckBigInt = CheckFunction<BigIntRuleDef>;

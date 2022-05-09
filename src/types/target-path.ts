@@ -4,10 +4,10 @@ export type TargetPath<T> = T extends (infer E)[]
   ?
       | [number] //
       | [number, ...TargetPath<E>]
-  : T extends Record<string, any>
+  : T extends object
   ? Value<{
       [key in keyof T]:
         | [key] //
-        | (T[key] extends Record<string, any> | [] ? [key, ...TargetPath<T[key]>] : never);
+        | (T[key] extends object | [] ? [key, ...TargetPath<T[key]>] : never);
     }>
   : never;

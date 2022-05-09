@@ -1,7 +1,7 @@
-import { check } from './check';
+import { checkByType } from './check';
 import structuredCopy from './structured-copy';
+import { Check, Target } from './types/main';
 import { DefaultRules, RuleDef } from './types/rule-def';
-import { TargetPath } from './types/target-path';
 import { getType, objectKeys } from './util';
 
 const applyDefaultRulesToRuleDef = <T>(r: RuleDef<T>, conf: DefaultRules): RuleDef<T> => {
@@ -35,10 +35,10 @@ const applyDefaultRulesToRuleDef = <T>(r: RuleDef<T>, conf: DefaultRules): RuleD
   return rule;
 };
 
-const checkEntry =
-  <T>(rule: RuleDef<T>, path: (string | number)[] = []) =>
-  (value: T) => {
-    const errors = check({
+const check =
+  <T>(rule: RuleDef<T>, path: (string | number)[] = []): Check<T> =>
+  (value) => {
+    const errors = checkByType({
       rule,
       type: getType(value),
       value,
@@ -67,25 +67,20 @@ const getTargetRule = <T>(rule: RuleDef<T>, path: (string | number)[]) => {
 };
 
 const target =
-  <T>(rule: RuleDef<T>) =>
-  (...p: TargetPath<T>) => {
+  <T>(rule: RuleDef<T>): Target<T> =>
+  (...p) => {
     const path = p as (string | number)[];
     const targetRule = getTargetRule(rule, path);
-    return { check: checkEntry(targetRule, path) };
+    return { check: check(targetRule, path) };
   };
 
-export const setRule = <T>(ruleDef: RuleDef<T>, defaultRules: DefaultRules = {}) => {
+export const createValidator = <T>(ruleDef: RuleDef<T>, defaultRules: DefaultRules = {}) => {
   // TODO: ts-jest doesn't have a structuredClone().
   // const rule = applyDefaultRulesToRuleDef(structuredClone(ruleDef), defaultRules) as RuleDef<T>;
   const rule = applyDefaultRulesToRuleDef(structuredCopy(ruleDef), defaultRules) as RuleDef<T>;
-  if (rule.type === 'array' || rule.type === 'object') {
-    return {
-      check: checkEntry<T>(rule),
-      target: target(rule),
-    };
-  }
   return {
-    check: checkEntry<T>(rule),
+    check: check(rule),
+    target: target(rule),
   };
 };
 
@@ -110,15 +105,48 @@ const applyConfigToDefaultRules = (
   return result;
 };
 
-const setRuleFromConfig =
+const createValidatorFromConfig =
   (conf: DefaultRules) =>
   <T>(ruleDef: RuleDef<T>, defaultRules: DefaultRules = {}) =>
-    setRule(ruleDef, applyConfigToDefaultRules(conf, defaultRules));
+    createValidator(ruleDef, applyConfigToDefaultRules(conf, defaultRules));
 
+/**
+ * ## Configure a default rule
+ *
+ * ```typescript
+ * import { config, RuleDef } from 'onion-check';
+ *
+ * const commonRules = {
+ *   existence: {
+ *     disallowUndefined: true,
+ *     disallowNokey: true,
+ *   };
+ * };
+ *
+ * const onion = config(commonRules);
+ *
+ * type DataA = { ... }
+ * const ruleA: RuleDef<DataA> = { ... };
+ * const validatorA = onion.createValidator(ruleA);
+ *
+ * type DataB = { ... }
+ * const ruleB: RuleDef<DataB> = { ... };
+ * const validatorB = onion.createValidator(ruleB);
+ * ```
+ *
+ */
 export const config = (conf: DefaultRules) => {
   if (typeof conf !== 'object')
     throw new Error('The config function takes an config object as an argument.');
-  return { setRule: setRuleFromConfig(conf) };
+  return { createValidator: createValidatorFromConfig(conf) };
 };
 
-export default { config, setRule };
+export default createValidator;
+
+const onion = config({});
+
+const validatorA = onion.createValidator<{ a: string }>({
+  type: 'object',
+  keys: { a: { type: 'string' } },
+});
+validatorA.check(1 as any);

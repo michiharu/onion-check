@@ -1,4 +1,4 @@
-import { setRule } from './main';
+import { createValidator } from './main';
 import {
   TestBool,
   TestComplex1,
@@ -13,7 +13,7 @@ import {
 
 describe('setRule()', () => {
   describe('TestBool', () => {
-    const rule = setRule<TestBool>({ type: 'boolean', eq: true });
+    const rule = createValidator<TestBool>({ type: 'boolean', eq: true });
     test('OK', () => {
       const value = true;
       const errors = [];
@@ -34,7 +34,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestNum', () => {
-    const rule = setRule<TestNum>({ type: 'number', gt: 3 });
+    const rule = createValidator<TestNum>({ type: 'number', gt: 3 });
     test('OK', () => {
       const value = 5;
       const errors = [];
@@ -55,7 +55,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestStr', () => {
-    const rule = setRule<TestStr>({ type: 'string', oneOf: ['good', 'cool'] });
+    const rule = createValidator<TestStr>({ type: 'string', oneOf: ['good', 'cool'] });
     test('OK', () => {
       const value = 'good';
       const errors = [];
@@ -76,7 +76,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestStrArray', () => {
-    const rule = setRule<TestStrArray>({
+    const rule = createValidator<TestStrArray>({
       type: 'array',
       elements: { type: 'string', lt: '2022-05-08' },
     });
@@ -100,7 +100,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestNestedArray', () => {
-    const rule = setRule<TestNestedArray>({
+    const rule = createValidator<TestNestedArray>({
       type: 'array',
       elements: {
         type: 'array',
@@ -136,7 +136,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestObj', () => {
-    const rule = setRule<TestObj>({
+    const rule = createValidator<TestObj>({
       type: 'object',
       disallowUndefinedKeys: true,
       keys: {
@@ -173,7 +173,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestNestedObj', () => {
-    const rule = setRule<TestNestedObj>({
+    const rule = createValidator<TestNestedObj>({
       type: 'object',
       disallowUndefinedKeys: true,
       keys: {
@@ -222,7 +222,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestComplex1', () => {
-    const rule = setRule<TestComplex1>({
+    const rule = createValidator<TestComplex1>({
       type: 'array',
       length: {
         or: [{ eq: 0 }, { eq: 2 }],
@@ -265,7 +265,7 @@ describe('setRule()', () => {
     });
   });
   describe('TestComplex2', () => {
-    const rule = setRule<TestComplex2>({
+    const rule = createValidator<TestComplex2>({
       type: 'object',
       keys: {
         obj: {
