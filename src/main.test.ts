@@ -1,15 +1,15 @@
+import { setRule } from './main';
 import {
   TestBool,
-  TestNum,
-  TestStr,
-  TestStrArray,
-  TestNestedArray,
-  TestObj,
-  TestNestedObj,
   TestComplex1,
   TestComplex2,
+  TestNestedArray,
+  TestNestedObj,
+  TestNum,
+  TestObj,
+  TestStr,
+  TestStrArray,
 } from './types/type-test';
-import { setRule } from './main';
 
 describe('setRule()', () => {
   describe('TestBool', () => {
@@ -21,7 +21,15 @@ describe('setRule()', () => {
     });
     test('NG', () => {
       const value = false;
-      const errors = [{ code: 'eq', label: undefined, path: [], value, rule: { name: 'eq', value: true } }];
+      const errors = [
+        {
+          code: 'eq',
+          label: undefined,
+          path: [],
+          value,
+          rule: { name: 'eq', value: true },
+        },
+      ];
       expect(rule.check(value).errors()).toEqual(errors);
     });
   });
@@ -34,7 +42,15 @@ describe('setRule()', () => {
     });
     test('NG', () => {
       const value = 1;
-      const errors = [{ code: 'gt', label: undefined, path: [], value, rule: { name: 'gt', value: 3 } }];
+      const errors = [
+        {
+          code: 'gt',
+          label: undefined,
+          path: [],
+          value,
+          rule: { name: 'gt', value: 3 },
+        },
+      ];
       expect(rule.check(value).errors()).toEqual(errors);
     });
   });
@@ -47,12 +63,23 @@ describe('setRule()', () => {
     });
     test('NG', () => {
       const value = 'marvelous';
-      const errors = [{ code: 'oneOf', label: undefined, path: [], value, rule: { name: 'oneOf', value: ['good', 'cool'] } }];
+      const errors = [
+        {
+          code: 'oneOf',
+          label: undefined,
+          path: [],
+          value,
+          rule: { name: 'oneOf', value: ['good', 'cool'] },
+        },
+      ];
       expect(rule.check(value).errors()).toEqual(errors);
     });
   });
   describe('TestStrArray', () => {
-    const rule = setRule<TestStrArray>({ type: 'array', elements: { type: 'string', lt: '2022-05-08' } });
+    const rule = setRule<TestStrArray>({
+      type: 'array',
+      elements: { type: 'string', lt: '2022-05-08' },
+    });
     test('OK', () => {
       const value = ['2022-04-01', '2022-05-01'];
       const errors = [];
@@ -60,7 +87,15 @@ describe('setRule()', () => {
     });
     test('NG', () => {
       const value = ['2022-04-30', '2022-05-30'];
-      const errors = [{ code: 'lt', label: undefined, path: [1], value: '2022-05-30', rule: { name: 'lt', value: '2022-05-08' } }];
+      const errors = [
+        {
+          code: 'lt',
+          label: undefined,
+          path: [1],
+          value: '2022-05-30',
+          rule: { name: 'lt', value: '2022-05-08' },
+        },
+      ];
       expect(rule.check(value).errors()).toEqual(errors);
     });
   });
@@ -88,7 +123,15 @@ describe('setRule()', () => {
         [98, 99],
         [100, 101],
       ];
-      const errors = [{ code: 'le', label: undefined, path: [1, 1], value: 101, rule: { name: 'le', value: 100 } }];
+      const errors = [
+        {
+          code: 'le',
+          label: undefined,
+          path: [1, 1],
+          value: 101,
+          rule: { name: 'le', value: 100 },
+        },
+      ];
       expect(rule.check(value).errors()).toEqual(errors);
     });
   });
@@ -117,7 +160,15 @@ describe('setRule()', () => {
         str: 'string',
         big: 1n,
       };
-      const errors = [{ code: 'disallowUndefinedKeys', label: undefined, path: [], value, rule: { name: 'disallowUndefinedKeys', value: true } }];
+      const errors = [
+        {
+          code: 'disallowUndefinedKeys',
+          label: undefined,
+          path: [],
+          value,
+          rule: { name: 'disallowUndefinedKeys', value: true },
+        },
+      ];
       expect(rule.check(value).errors()).toEqual(errors);
     });
   });
@@ -164,7 +215,7 @@ describe('setRule()', () => {
             num: 1,
             str: 'string',
           },
-          rule: { name: 'disallowUndefinedKeys', value: true }
+          rule: { name: 'disallowUndefinedKeys', value: true },
         },
       ];
       expect(rule.check(value).errors()).toEqual(errors);
@@ -200,14 +251,59 @@ describe('setRule()', () => {
           label: undefined,
           path: ['length'],
           value: 1,
-          rule: { name: 'eq', value: 0 }
+          rule: { name: 'eq', value: 0 },
         },
         {
           code: 'eq',
           label: undefined,
           path: ['length'],
           value: 1,
-          rule: { name: 'eq', value: 2 }
+          rule: { name: 'eq', value: 2 },
+        },
+      ];
+      expect(rule.check(value).errors()).toEqual(errors);
+    });
+  });
+  describe('TestComplex2', () => {
+    const rule = setRule<TestComplex2>({
+      type: 'object',
+      keys: {
+        obj: {
+          type: 'array',
+          elements: {
+            type: 'object',
+            keys: {
+              bool: { type: 'boolean' },
+              num: { type: 'number', ne: 0 },
+            },
+          },
+        },
+      },
+    });
+    test('OK', () => {
+      const value = {
+        obj: [
+          { bool: true, num: 1 },
+          { bool: false, num: 2 },
+        ],
+      };
+      const errors = [];
+      expect(rule.check(value).errors()).toEqual(errors);
+    });
+    test('NG', () => {
+      const value = {
+        obj: [
+          { bool: true, num: 1 },
+          { bool: false, num: 0 },
+        ],
+      };
+      const errors = [
+        {
+          code: 'ne',
+          label: undefined,
+          path: ['obj', 1, 'num'],
+          value: 0,
+          rule: { name: 'ne', value: 0 },
         },
       ];
       expect(rule.check(value).errors()).toEqual(errors);

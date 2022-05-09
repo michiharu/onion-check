@@ -1,2 +1,3 @@
 // TODO: I want to use a "structuredClone".
-export const structuredCopy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+const structuredCopy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+export default structuredCopy;

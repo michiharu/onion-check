@@ -64,7 +64,10 @@ export type ArrayRuleDef<E> = CreateRule<'array', ArrayMetaRules & { elements: R
 
 export type RuleMapping<T extends object> = { [key in keyof T]-?: RuleDef<T[key]> };
 export type ObjectMetaRules = ErrorCode<{ disallowUndefinedKeys?: boolean }>;
-export type ObjectRuleDef<T extends object> = CreateRule<'object', ObjectMetaRules & { keys: RuleMapping<T> }>;
+export type ObjectRuleDef<T extends object> = CreateRule<
+  'object',
+  ObjectMetaRules & { keys: RuleMapping<T> }
+>;
 
 export type IgnoreRuleDef = { type: 'ignore' };
 
@@ -83,7 +86,9 @@ export type RuleDef<T = any> = T extends boolean
   : IgnoreRuleDef;
 
 type WithoutErrorCode<T> = T extends `${string}ErrorCode` ? never : T;
-export type Rule = WithoutErrorCode<keyof ExistenceRules | 'type' | keyof StringRules | keyof ObjectMetaRules>
+export type Rule = WithoutErrorCode<
+  keyof ExistenceRules | 'type' | keyof StringRules | keyof ObjectMetaRules
+>;
 
 export type DefaultRules = {
   existence?: ExistenceRules;

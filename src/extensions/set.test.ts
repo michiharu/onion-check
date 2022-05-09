@@ -1,9 +1,9 @@
-import './set';
+import SetEx from './set';
 
 describe('Set extensions', () => {
-  const a = new Set([1, 2, 3]);
-  const b = new Set([2, 4, 6]);
-  const c = new Set([1, 2, 3, 4, 5, 6]);
+  const a = new SetEx([1, 2, 3]);
+  const b = new SetEx([2, 4, 6]);
+  const c = new SetEx([1, 2, 3, 4, 5, 6]);
 
   test('union', () => {
     const result = [...a.union(b)].sort();
@@ -22,7 +22,7 @@ describe('Set extensions', () => {
     expect(result2).toEqual([2, 4, 6]);
   });
   test('equals', () => {
-    const d = new Set([1, 2, 3]);
+    const d = new SetEx([1, 2, 3]);
     expect(a.equals(d)).toBe(true);
     expect(d.equals(a)).toBe(true);
     expect(b.equals(c)).toBe(false);

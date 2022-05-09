@@ -1,1 +1,3 @@
-export { default as onion } from './main';
+import onion from './main';
+
+export default onion;

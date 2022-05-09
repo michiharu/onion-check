@@ -1,23 +1,23 @@
 import {
-  RuleDef,
-  BooleanRuleDef,
-  NumberRules,
-  NumberRuleDef,
-  StringRuleDef,
   ArrayRuleDef,
+  BooleanRuleDef,
   Conditional,
+  NumberRuleDef,
+  NumberRules,
+  RuleDef,
+  StringRuleDef,
 } from './rule-def';
 import {
-  assertEqualType,
   TestBool,
-  TestNum,
-  TestStr,
-  TestStrArray,
-  TestNestedArray,
-  TestObj,
-  TestNestedObj,
   TestComplex1,
   TestComplex2,
+  TestNestedArray,
+  TestNestedObj,
+  TestNum,
+  TestObj,
+  TestStr,
+  TestStrArray,
+  assertEqualType,
 } from './type-test';
 
 type ResultBool = RuleDef<TestBool>;

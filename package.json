@@ -16,8 +16,8 @@
     "type": "git",
     "url": "git+https://github.com/michiharu/onion-check.git"
   },
-  "author": "michiharu",
   "license": "MIT",
+  "author": "michiharu",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
   "types": "./lib/esm/index.d.ts",
@@ -26,21 +26,33 @@
   ],
   "scripts": {
     "build": "rollup -c",
-    "tsc": "tsc --noEmit",
     "doc": "typedoc --plugin typedoc-plugin-markdown --out docs src/index.ts",
-    "test": "jest"
+    "fix": "yarn fmt && yarn lint && npx sort-package-json",
+    "fmt": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "lint": "eslint --fix --ext .ts ./src",
+    "test": "jest",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "rollup-plugin-typescript2": "^0.31.2"
   },
   "devDependencies": {
     "@types/jest": "^27.5.0",
     "@types/node": "^17.0.31",
+    "@typescript-eslint/eslint-plugin": "^5.22.0",
+    "@typescript-eslint/parser": "^5.22.0",
+    "eslint": "^7.32.0 || ^8.2.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-import-resolver-typescript": "^2.7.1",
+    "eslint-plugin-import": "^2.26.0",
     "jest": "^28.1.0",
+    "prettier": "^2.6.2",
     "rollup": "^2.72.0",
     "ts-jest": "^28.0.1",
     "typedoc": "^0.22.15",
     "typedoc-plugin-markdown": "^3.12.1",
     "typescript": "^4.6.4"
-  },
-  "dependencies": {
-    "rollup-plugin-typescript2": "^0.31.2"
   }
 }

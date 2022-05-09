@@ -1,4 +1,4 @@
-import { objectKeys, getType, getTypeFromParent } from "./util";
+import { getType, getTypeFromParent, objectKeys } from './util';
 
 describe('objectKeys', () => {
   test('boolean', () => expect(objectKeys({ a: true })).toEqual(['a']));
@@ -6,7 +6,7 @@ describe('objectKeys', () => {
 
 describe('getType', () => {
   test('boolean', () => expect(getType(true)).toBe('boolean'));
-  test('number', () => expect(getType(0 )).toBe('number'));
+  test('number', () => expect(getType(0)).toBe('number'));
   test('bigint', () => expect(getType(1n)).toBe('bigint'));
   test('string', () => expect(getType('a')).toBe('string'));
   test('array', () => expect(getType(['a'])).toBe('array'));

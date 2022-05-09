@@ -1,3 +1,4 @@
+import SetEx from './extensions/set';
 import {
   Check,
   CheckArray,
@@ -16,24 +17,19 @@ import {
   ErrorResult,
 } from './types/check';
 import { AND, Conditional, OR } from './types/rule-def';
-import { nullableTypes, TypeOf, NullableType } from './types/type-of';
+import { NullableType, TypeOf, nullableTypes } from './types/type-of';
 import { getType, getTypeFromParent, objectKeys } from './util';
-
-import './extensions/array';
-import './extensions/set';
 
 const isAND = <T>(rule: Conditional<T>): rule is AND<T> => getType((rule as any)?.and) === 'array';
 const isOR = <T>(rule: Conditional<T>): rule is OR<T> => getType((rule as any)?.or) === 'array';
 
-const createErrorResult: CreateErrorResult = (rule, arg) => {
-  return {
-    rule: { name: rule, value: arg.rule[rule] },
-    value: arg.value,
-    code: arg.rule[`${rule}ErrorCode`] ?? rule,
-    path: arg.path,
-    label: arg.label,
-  };
-};
+const createErrorResult: CreateErrorResult = (rule, arg) => ({
+  rule: { name: rule, value: arg.rule[rule] },
+  value: arg.value,
+  code: arg.rule[`${rule}ErrorCode`] ?? rule,
+  path: arg.path,
+  label: arg.label,
+});
 
 const checkConditionalRules: CheckConditionalRules = (arg, checker) => {
   const { rule } = arg;
@@ -62,9 +58,7 @@ const checkNe: CheckEqNe = (arg) => {
   return rule.ne !== value ? [] : [createErrorResult('ne', arg)];
 };
 
-const checkEqNe: CheckEqNe = (arg) => {
-  return [checkEq(arg), checkNe(arg)].flatMap((errors) => errors);
-};
+const checkEqNe: CheckEqNe = (arg) => [checkEq(arg), checkNe(arg)].flatMap((errors) => errors);
 
 const checkGe: CheckLimit = (arg) => {
   const { rule, value } = arg;
@@ -93,7 +87,9 @@ const checkLt: CheckLimit = (arg) => {
 const checkBetween: CheckLimit = (arg) => {
   const { rule, value } = arg;
   if (rule.between === undefined) return [];
-  return rule.between[0] < value && value < rule.between[1] ? [] : [createErrorResult('between', arg)];
+  return rule.between[0] < value && value < rule.between[1]
+    ? []
+    : [createErrorResult('between', arg)];
 };
 
 const checkOneOf: CheckLimit = (arg) => {
@@ -102,8 +98,8 @@ const checkOneOf: CheckLimit = (arg) => {
   return rule.oneOf.includes(value as any) ? [] : [createErrorResult('oneOf', arg)];
 };
 
-const checkLimit: CheckLimit = (arg) => {
-  return [
+const checkLimit: CheckLimit = (arg) =>
+  [
     checkEqNe(arg),
     checkGe(arg),
     checkGt(arg),
@@ -112,9 +108,9 @@ const checkLimit: CheckLimit = (arg) => {
     checkBetween(arg),
     checkOneOf(arg),
   ].flatMap((errors) => errors);
-};
 
-const isNullable = (type: TypeOf): type is NullableType => (nullableTypes as unknown as TypeOf).includes(type);
+const isNullable = (type: TypeOf): type is NullableType =>
+  (nullableTypes as unknown as TypeOf).includes(type);
 
 const checkRequiredRule: CheckBase = (arg) => {
   const { rule, type } = arg;
@@ -125,20 +121,19 @@ const checkRequiredRule: CheckBase = (arg) => {
 const checkNullableDisallowRule: CheckBase = (arg) => {
   const { rule, type } = arg;
   if (!isNullable(type)) return [];
-  switch (type) {
-    case 'undefined': {
-      if (!rule.disallowUndefined) return [];
-      return [createErrorResult('disallowUndefined', arg)];
-    }
-    case 'null': {
-      if (!rule.disallowNull) return [];
-      return [createErrorResult('disallowNull', arg)];
-    }
-    case 'nokey': {
-      if (!rule.disallowNokey) return [];
-      return [createErrorResult('disallowNokey', arg)];
-    }
+  if (type === 'undefined') {
+    if (!rule.disallowUndefined) return [];
+    return [createErrorResult('disallowUndefined', arg)];
   }
+  if (type === 'null') {
+    if (!rule.disallowNull) return [];
+    return [createErrorResult('disallowNull', arg)];
+  }
+  if (type === 'nokey') {
+    if (!rule.disallowNokey) return [];
+    return [createErrorResult('disallowNokey', arg)];
+  }
+  throw new Error();
 };
 
 const checkExistenceRules: CheckBase = (arg) => {
@@ -189,8 +184,8 @@ const checkNotPattern: CheckStringBaseRules = (arg) => {
   return !rule.notPattern.test(value) ? [] : [createErrorResult('notPattern', arg)];
 };
 
-const checkStringBaseRules: CheckStringBaseRules = (arg) => {
-  return [
+const checkStringBaseRules: CheckStringBaseRules = (arg) =>
+  [
     checkLimit(arg),
     checkBeginsWith(arg),
     checkContains(arg),
@@ -198,29 +193,38 @@ const checkStringBaseRules: CheckStringBaseRules = (arg) => {
     checkPattern(arg),
     checkNotPattern(arg),
   ].flatMap((errors) => errors);
+
+const convertStringToBoolean = (value: string): boolean | undefined => {
+  const lower = value.toLowerCase();
+  const trueValues = ['y', 'yes', 't', 'true', 'on', '1'];
+  const falseValues = ['n', 'no', 'f', 'false', 'off', '0'];
+  if (trueValues.includes(lower)) return true;
+  if (falseValues.includes(lower)) return false;
+  return undefined;
 };
 
 const checkStringAsBoolean: CheckStringRules = (arg) => {
   if (arg.rule.asBoolean === undefined) return [];
   const { rule, value } = arg;
-  const lower = value.toLowerCase();
-  const trueValues = ['y', 'yes', 't', 'true', 'on', '1'];
-  const falseValues = ['n', 'no', 'f', 'false', 'off', '0'];
-  const valueAsBoolean = trueValues.includes(lower) ? true : falseValues.includes(lower) ? false : undefined;
+  const valueAsBoolean = convertStringToBoolean(value);
   if (valueAsBoolean === undefined) return [createErrorResult('asBoolean', arg)];
-  return checkBoolean({ ...arg, rule: { type: 'boolean', ...rule.asBoolean }, value: valueAsBoolean });
+  return checkBoolean({
+    ...arg,
+    rule: { type: 'boolean', ...rule.asBoolean },
+    value: valueAsBoolean,
+  });
 };
 
 export const checkStringAsNumber: CheckStringRules = (arg) => {
   if (arg.rule.asNumber === undefined) return [];
   const { rule, value } = arg;
   const valueAsNumber = Number(value);
-  if (isNaN(valueAsNumber)) return [createErrorResult('asNumber', arg)];
+  if (Number.isNaN(valueAsNumber)) return [createErrorResult('asNumber', arg)];
   return checkNumber({ ...arg, rule: { type: 'number', ...rule.asNumber }, value: valueAsNumber });
 };
 
 export const createBigIntSafely = (value: string | number | bigint | boolean): bigint | undefined =>
-  !isNaN(Number(value)) ? BigInt(value) : undefined;
+  !Number.isNaN(Number(value)) ? BigInt(value) : undefined;
 
 const checkStringAsBigInt: CheckStringRules = (arg) => {
   if (arg.rule.asBigInt === undefined) return [];
@@ -236,15 +240,14 @@ const checkStringLength: CheckStringRules = (arg) => {
   return checkLimit({ ...arg, rule: rule.length, value: value.length });
 };
 
-const checkStringRules: CheckStringRules = (arg) => {
-  return [
+const checkStringRules: CheckStringRules = (arg) =>
+  [
     checkStringBaseRules(arg),
     checkStringAsBoolean(arg),
     checkStringAsNumber(arg),
     checkStringAsBigInt(arg),
     checkStringLength(arg),
   ].flatMap((errors) => errors);
-};
 
 const checkString: CheckString = (arg) => checkConditionalRules(arg, checkStringRules);
 
@@ -253,7 +256,8 @@ const checkArrayMetaRules: CheckArray = (arg) => {
   const rule = arg.rule.length;
   const value = (arg.value as []).length;
   const path = arg.path.concat('length');
-  return checkConditionalRules({ type: 'number', rule, value, path, label }, checkLimit);
+  const lengthArgs = { type: 'number', rule, value, path, label } as const;
+  return checkConditionalRules(lengthArgs, checkLimit);
 };
 
 const checkArray: CheckArray = (arg) => {
@@ -263,6 +267,7 @@ const checkArray: CheckArray = (arg) => {
     const rule = arg.rule.elements;
     const type = getType(value);
     const path = arg.path.concat([index]);
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return check({ rule, type, value, path });
   });
   return errors.concat(childrenErrors);
@@ -272,8 +277,8 @@ const checkObjectDisallowUndefinedKeys: CheckObject = (arg) => {
   const { rule, value } = arg;
   const disallowUndefinedKeys: boolean = rule.disallowUndefinedKeys ?? false;
   if (!disallowUndefinedKeys) return [];
-  const ruleKeySet = objectKeys(rule.keys).set();
-  const dataKeySet = objectKeys(value as object).set();
+  const ruleKeySet = new SetEx(objectKeys(rule.keys));
+  const dataKeySet = new SetEx(objectKeys(value as object));
   if (ruleKeySet.isSuperset(dataKeySet)) return [];
   return [createErrorResult('disallowUndefinedKeys', arg)];
 };
@@ -286,6 +291,7 @@ const checkObject: CheckObject = (arg) => {
     const value = arg.value[key];
     const type = getTypeFromParent(arg.value, key);
     const path = arg.path.concat([key]);
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return check({ rule, type, value, path });
   });
   return errors.concat(childrenErrors);

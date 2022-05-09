@@ -1,4 +1,4 @@
-import { createBigIntSafely, checkStringAsNumber } from './check';
+import { checkStringAsNumber, createBigIntSafely } from './check';
 import { Arg } from './types/check';
 import { StringRules } from './types/rule-def';
 
@@ -8,7 +8,11 @@ describe('createBigIntSafely()', () => {
 });
 
 describe('checkStringAsBoolean', () => {
-  const args: Omit<Arg<StringRules, string>, 'value'> = { type: 'string', rule: { asBoolean: {} }, path: [] };
+  const args: Omit<Arg<StringRules, string>, 'value'> = {
+    type: 'string',
+    rule: { asBoolean: {} },
+    path: [],
+  };
   test('"10"', () => expect(checkStringAsNumber({ ...args, value: '10' })).toEqual([]));
   test('"text"', () => expect(checkStringAsNumber({ ...args, value: 'text' })).toEqual([]));
 });

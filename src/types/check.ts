@@ -1,4 +1,3 @@
-import { TypeOf } from './type-of';
 import {
   ArrayRuleDef,
   BaseRuleDef,
@@ -10,7 +9,6 @@ import {
   LimitRules,
   LimitType,
   NumberRuleDef,
-  NumberRules,
   ObjectRuleDef,
   Rule,
   RuleDef,
@@ -18,9 +16,22 @@ import {
   StringRuleDef,
   StringRules,
 } from './rule-def';
+import { TypeOf } from './type-of';
 
-export type ErrorResult = { path: (string | number)[]; rule: { name: string, value: any }, value: unknown; label?: string; code: string };
-export type Arg<R, V> = { rule: R; value: V; type: TypeOf; path: (string | number)[]; label?: string };
+export type ErrorResult = {
+  path: (string | number)[];
+  rule: { name: string; value: any };
+  value: unknown;
+  label?: string;
+  code: string;
+};
+export type Arg<R, V> = {
+  rule: R;
+  value: V;
+  type: TypeOf;
+  path: (string | number)[];
+  label?: string;
+};
 export type CheckFunction<R, V = unknown> = (arg: Arg<R, V>) => ErrorResult[];
 export type CreateErrorResult = (rule: Rule, arg: Arg<any, any>) => ErrorResult;
 
