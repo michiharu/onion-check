@@ -75,7 +75,10 @@ assertEqualType<ResultComplex1TargetType3, number>(true);
 
 // TestComplex2
 type ResultComplex2 = TargetPath<TestComplex2>;
-assertEqualType<ResultComplex2, ['obj'] | ['obj', number] | ['obj', number, 'bool'] | ['obj', number, 'num']>(true);
+assertEqualType<
+  ResultComplex2,
+  ['obj'] | ['obj', number] | ['obj', number, 'bool'] | ['obj', number, 'num']
+>(true);
 
 type ResultComplex2TargetType1 = TargetType<TestComplex2, ['obj']>;
 assertEqualType<ResultComplex2TargetType1, { bool: boolean; num: number }[]>(true);

@@ -6,10 +6,10 @@ import {
   Conditional,
   EqNeRules,
   EqNeType,
-  LimitRules,
-  LimitType,
   NumberRuleDef,
   ObjectRuleDef,
+  PrimitiveRules,
+  PrimitiveType,
   Rule,
   RuleDef,
   StringBaseRules,
@@ -41,7 +41,7 @@ export type CheckConditionalRules = <R, V = unknown>(
   checker: Checker<R, V>
 ) => ErrorResult[];
 export type CheckEqNe = <T extends EqNeType>(arg: Arg<EqNeRules<T>, unknown>) => ErrorResult[];
-export type CheckLimit = <T extends LimitType>(arg: Arg<LimitRules<T>, unknown>) => ErrorResult[];
+export type CheckPrimitive = <T extends PrimitiveType>(arg: Arg<PrimitiveRules<T>, unknown>) => ErrorResult[];
 export type CheckBase = CheckFunction<BaseRuleDef>;
 
 export type CheckStringBaseRules = CheckFunction<StringBaseRules, string>;

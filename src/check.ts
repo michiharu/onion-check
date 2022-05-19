@@ -7,9 +7,9 @@ import {
   CheckByType,
   CheckConditionalRules,
   CheckEqNe,
-  CheckLimit,
   CheckNumber,
   CheckObject,
+  CheckPrimitive,
   CheckString,
   CheckStringBaseRules,
   CheckStringRules,
@@ -25,14 +25,14 @@ export const isAND = <T>(rule: Conditional<T>): rule is AND<T> => {
   if (andType === 'array') return true;
   if (andType === 'undefined') return false;
   throw new Error('"and" property must be "array" or "undefined".');
-}
+};
 
 export const isOR = <T>(rule: Conditional<T>): rule is OR<T> => {
   const orType = getType((rule as any).or);
   if (orType === 'array') return true;
   if (orType === 'undefined') return false;
   throw new Error('"or" property must be "array" or "undefined".');
-}
+};
 
 export const createErrorResult: CreateErrorResult = (rule, arg) => ({
   rule: { name: rule, value: arg.rule[rule] },
@@ -69,33 +69,34 @@ export const checkNe: CheckEqNe = (arg) => {
   return rule.ne !== value ? [] : [createErrorResult('ne', arg)];
 };
 
-export const checkEqNe: CheckEqNe = (arg) => [checkEq(arg), checkNe(arg)].flatMap((errors) => errors);
+export const checkEqNe: CheckEqNe = (arg) =>
+  [checkEq(arg), checkNe(arg)].flatMap((errors) => errors);
 
-export const checkGe: CheckLimit = (arg) => {
+export const checkGe: CheckPrimitive = (arg) => {
   const { rule, value } = arg;
   if (rule.ge === undefined) return [];
   return rule.ge <= value ? [] : [createErrorResult('ge', arg)];
 };
 
-export const checkGt: CheckLimit = (arg) => {
+export const checkGt: CheckPrimitive = (arg) => {
   const { rule, value } = arg;
   if (rule.gt === undefined) return [];
   return rule.gt < value ? [] : [createErrorResult('gt', arg)];
 };
 
-export const checkLe: CheckLimit = (arg) => {
+export const checkLe: CheckPrimitive = (arg) => {
   const { rule, value } = arg;
   if (rule.le === undefined) return [];
   return rule.le >= value ? [] : [createErrorResult('le', arg)];
 };
 
-export const checkLt: CheckLimit = (arg) => {
+export const checkLt: CheckPrimitive = (arg) => {
   const { rule, value } = arg;
   if (rule.lt === undefined) return [];
   return rule.lt > value ? [] : [createErrorResult('lt', arg)];
 };
 
-export const checkBetween: CheckLimit = (arg) => {
+export const checkBetween: CheckPrimitive = (arg) => {
   const { rule, value } = arg;
   if (rule.between === undefined) return [];
   return rule.between[0] < value && value < rule.between[1]
@@ -103,13 +104,13 @@ export const checkBetween: CheckLimit = (arg) => {
     : [createErrorResult('between', arg)];
 };
 
-export const checkOneOf: CheckLimit = (arg) => {
+export const checkOneOf: CheckPrimitive = (arg) => {
   const { rule, value } = arg;
   if (rule.oneOf === undefined) return [];
   return rule.oneOf.includes(value as any) ? [] : [createErrorResult('oneOf', arg)];
 };
 
-export const checkLimit: CheckLimit = (arg) =>
+export const checkPrimitive: CheckPrimitive = (arg) =>
   [
     checkEqNe(arg),
     checkGe(arg),
@@ -126,26 +127,35 @@ export const isNullable = (type: TypeOf): type is NullableType =>
 export const checkRequiredRule: CheckBase = (arg) => {
   const { rule, type } = arg;
   if (!rule.required) return [];
-  return isNullable(type) ? [createErrorResult('required', arg)] : [];
+  if (!isNullable(type)) return [];
+  return [createErrorResult('required', arg)];
 };
 
-export const checkNullableDisallowRule: CheckBase = (arg) => {
+export const checkDisallowUndefined: CheckBase = (arg) => {
   const { rule, type } = arg;
-  if (!isNullable(type)) return [];
-  if (type === 'undefined') {
-    if (!rule.disallowUndefined) return [];
-    return [createErrorResult('disallowUndefined', arg)];
-  }
-  if (type === 'null') {
-    if (!rule.disallowNull) return [];
-    return [createErrorResult('disallowNull', arg)];
-  }
-  if (type === 'nokey') {
-    if (!rule.disallowNokey) return [];
-    return [createErrorResult('disallowNokey', arg)];
-  }
-  throw new Error();
+  if (type !== 'undefined') return [];
+  if (!rule.disallowUndefined) return [];
+  return [createErrorResult('disallowUndefined', arg)];
 };
+
+export const checkDisallowNull: CheckBase = (arg) => {
+  const { rule, type } = arg;
+  if (type !== 'null') return [];
+  if (!rule.disallowNull) return [];
+  return [createErrorResult('disallowNull', arg)];
+};
+
+export const checkDisallowNokey: CheckBase = (arg) => {
+  const { rule, type } = arg;
+  if (type !== 'nokey') return [];
+  if (!rule.disallowNokey) return [];
+  return [createErrorResult('disallowNokey', arg)];
+};
+
+export const checkNullableDisallowRule: CheckBase = (arg) =>
+  [checkDisallowUndefined(arg), checkDisallowNull(arg), checkDisallowNokey(arg)].flatMap(
+    (errors) => errors
+  );
 
 export const checkExistenceRules: CheckBase = (arg) => {
   const requiredErrors = checkRequiredRule(arg);
@@ -155,15 +165,16 @@ export const checkExistenceRules: CheckBase = (arg) => {
 
 export const checkType: CheckBase = (arg) => {
   const { rule, type } = arg;
-  if (isNullable(type) || rule.type === type) return [];
+  if (isNullable(type)) return []; // after existence rules check
+  if (rule.type === type) return [];
   return [createErrorResult('type', arg)];
 };
 
 export const checkBoolean: CheckBoolean = (arg) => checkEqNe(arg);
 
-export const checkNumber: CheckNumber = (arg) => checkConditionalRules(arg, checkLimit);
+export const checkNumber: CheckNumber = (arg) => checkConditionalRules(arg, checkPrimitive);
 
-export const checkBigInt: CheckBigInt = (arg) => checkConditionalRules(arg, checkLimit);
+export const checkBigInt: CheckBigInt = (arg) => checkConditionalRules(arg, checkPrimitive);
 
 export const checkBeginsWith: CheckStringBaseRules = (arg) => {
   const { rule, value } = arg;
@@ -197,7 +208,7 @@ export const checkNotPattern: CheckStringBaseRules = (arg) => {
 
 export const checkStringBaseRules: CheckStringBaseRules = (arg) =>
   [
-    checkLimit(arg),
+    checkPrimitive(arg),
     checkBeginsWith(arg),
     checkContains(arg),
     checkNotContains(arg),
@@ -248,7 +259,7 @@ export const checkStringAsBigInt: CheckStringRules = (arg) => {
 export const checkStringLength: CheckStringRules = (arg) => {
   if (arg.rule.length === undefined) return [];
   const { rule, value } = arg;
-  return checkLimit({ ...arg, rule: rule.length, value: value.length });
+  return checkPrimitive({ ...arg, rule: rule.length, value: value.length });
 };
 
 export const checkStringRules: CheckStringRules = (arg) =>
@@ -268,7 +279,7 @@ export const checkArrayMetaRules: CheckArray = (arg) => {
   const value = (arg.value as []).length;
   const path = arg.path.concat('length');
   const lengthArgs = { type: 'number', rule, value, path, label } as const;
-  return checkConditionalRules(lengthArgs, checkLimit);
+  return checkConditionalRules(lengthArgs, checkPrimitive);
 };
 
 export const checkArray: CheckArray = (arg) => {

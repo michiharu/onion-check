@@ -11,10 +11,15 @@ export type OR<T> = { or?: Conditional<T>[] } & { and?: undefined };
 export type Conditional<T> = (T & { and?: undefined; or?: undefined }) | AND<T> | OR<T>;
 
 export type EqNeType = boolean | number | bigint | string;
-export type EqNeRules<T extends EqNeType> = Merge<ErrorCode<{ eq?: T; ne?: T }>>;
+export type EqNeRules<T extends EqNeType> = Merge<ErrorCode<{
+  /** equals */
+  eq?: T;
+  /** not equals */
+  ne?: T;
+}>>;
 
-export type LimitType = number | bigint | string;
-export type LimitRules<T extends LimitType> = Merge<
+export type PrimitiveType = number | bigint | string;
+export type PrimitiveRules<T extends PrimitiveType> = Merge<
   ErrorCode<{ ge?: T; gt?: T; le?: T; lt?: T; between?: [T, T]; oneOf?: T[] }> & EqNeRules<T>
 >;
 
@@ -34,14 +39,14 @@ export type BaseRuleDef = CreateRule<CheckRuleType, {}>;
 export type BooleanRules = Merge<EqNeRules<boolean>>;
 export type BooleanRuleDef = CreateRule<'boolean', BooleanRules>;
 
-export type NumberRules = Merge<LimitRules<number>>;
+export type NumberRules = Merge<PrimitiveRules<number>>;
 export type NumberRuleDef = CreateRule<'number', Conditional<NumberRules>>;
 
-export type BigIntRules = Merge<LimitRules<bigint>>;
+export type BigIntRules = Merge<PrimitiveRules<bigint>>;
 export type BigIntRuleDef = CreateRule<'bigint', Conditional<BigIntRules>>;
 
 export type StringBaseRules = Merge<
-  LimitRules<string> &
+  PrimitiveRules<string> &
     ErrorCode<{
       beginsWith?: string;
       contains?: string;
@@ -51,7 +56,7 @@ export type StringBaseRules = Merge<
     }>
 >;
 export type StringRules = Merge<
-  StringBaseRules & { length?: LimitRules<number> } & ErrorCode<{
+  StringBaseRules & { length?: PrimitiveRules<number> } & ErrorCode<{
       asBoolean?: BooleanRules;
       asNumber?: NumberRules;
       asBigInt?: BigIntRules;
