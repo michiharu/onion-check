@@ -27,9 +27,9 @@
   "scripts": {
     "build": "rollup -c",
     "commit": "yarn run lint-staged && cz",
+    "coverage": "jest --coverage",
     "doc": "typedoc --plugin typedoc-plugin-markdown --out docs src/index.ts",
-    "fix": "yarn fmt && yarn lint",
-    "fix-all": "yarn fmt && yarn lint && tsc --noEmit && sort-package-json",
+    "fix": "yarn fmt && yarn lint && tsc --noEmit && sort-package-json",
     "fmt": "prettier --write \"src/**/*.ts\"",
     "postinstall": "husky install",
     "lint": "eslint --fix --ext .ts ./src",
