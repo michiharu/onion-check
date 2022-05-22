@@ -276,8 +276,13 @@ describe('checkNullableDisallowRule', () => {
 
 describe('checkExistenceRules', () => {
   describe('required: true, disallowNull: true', () => {
-    const args: BaseArg = { rule: { type: 'string', required: true, disallowNull: true }, path, value: null };
-    test('type: "string"', () => expect(checkExistenceRules({ ...args, type: 'string' })).toEqual([]));
+    const args: BaseArg = {
+      rule: { type: 'string', required: true, disallowNull: true },
+      path,
+      value: null,
+    };
+    test('type: "string"', () =>
+      expect(checkExistenceRules({ ...args, type: 'string' })).toEqual([]));
     test('type: "null"', () =>
       expect(checkExistenceRules({ ...args, type: 'null' })).toEqual([
         { code: 'required', path, rule: { name: 'required', value: true }, value: null },
@@ -285,7 +290,8 @@ describe('checkExistenceRules', () => {
   });
   describe('required: false, disallowNull: true', () => {
     const args: BaseArg = { rule: { type: 'string', disallowNull: true }, path, value: null };
-    test('type: "string"', () => expect(checkDisallowNull({ ...args, type: 'string' })).toEqual([]));
+    test('type: "string"', () =>
+      expect(checkDisallowNull({ ...args, type: 'string' })).toEqual([]));
     test('type: "null"', () =>
       expect(checkDisallowNull({ ...args, type: 'null' })).toEqual([
         {

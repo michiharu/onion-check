@@ -11,12 +11,14 @@ export type OR<T> = { or?: Conditional<T>[] } & { and?: undefined };
 export type Conditional<T> = (T & { and?: undefined; or?: undefined }) | AND<T> | OR<T>;
 
 export type EqNeType = boolean | number | bigint | string;
-export type EqNeRules<T extends EqNeType> = Merge<ErrorCode<{
-  /** equals */
-  eq?: T;
-  /** not equals */
-  ne?: T;
-}>>;
+export type EqNeRules<T extends EqNeType> = Merge<
+  ErrorCode<{
+    /** equals */
+    eq?: T;
+    /** not equals */
+    ne?: T;
+  }>
+>;
 
 export type PrimitiveType = number | bigint | string;
 export type PrimitiveRules<T extends PrimitiveType> = Merge<

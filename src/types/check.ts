@@ -41,7 +41,9 @@ export type CheckConditionalRules = <R, V = unknown>(
   checker: Checker<R, V>
 ) => ErrorResult[];
 export type CheckEqNe = <T extends EqNeType>(arg: Arg<EqNeRules<T>, unknown>) => ErrorResult[];
-export type CheckPrimitive = <T extends PrimitiveType>(arg: Arg<PrimitiveRules<T>, unknown>) => ErrorResult[];
+export type CheckPrimitive = <T extends PrimitiveType>(
+  arg: Arg<PrimitiveRules<T>, unknown>
+) => ErrorResult[];
 export type CheckBase = CheckFunction<BaseRuleDef>;
 
 export type CheckStringBaseRules = CheckFunction<StringBaseRules, string>;

@@ -26,30 +26,54 @@
   ],
   "scripts": {
     "build": "rollup -c",
+    "commit": "yarn run lint-staged && cz",
     "doc": "typedoc --plugin typedoc-plugin-markdown --out docs src/index.ts",
-    "fix": "yarn fmt && yarn lint && npx sort-package-json",
-    "fmt": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "fix": "yarn fmt && yarn lint",
+    "fix-all": "yarn fmt && yarn lint && tsc --noEmit && sort-package-json",
+    "fmt": "prettier --write \"src/**/*.ts\"",
+    "postinstall": "husky install",
     "lint": "eslint --fix --ext .ts ./src",
+    "prepack": "pinst --disable",
+    "postpack": "pinst --enable",
+    "sort": "sort-package-json",
     "test": "jest",
     "tsc": "tsc --noEmit"
   },
-  "dependencies": {
-    "rollup-plugin-typescript2": "^0.31.2"
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "package.json": "sort-package-json"
   },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-customizable"
+    }
+  },
+  "dependencies": {},
   "devDependencies": {
     "@types/jest": "^27.5.0",
     "@types/node": "^17.0.31",
     "@typescript-eslint/eslint-plugin": "^5.22.0",
     "@typescript-eslint/parser": "^5.22.0",
+    "commitizen": "^4.2.4",
+    "commitlint": "^17.0.0",
+    "commitlint-config-gitmoji": "^2.2.5",
+    "cz-customizable": "^6.3.0",
     "eslint": "^7.32.0 || ^8.2.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^17.0.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-import-resolver-typescript": "^2.7.1",
     "eslint-plugin-import": "^2.26.0",
+    "husky": "^8.0.1",
     "jest": "^28.1.0",
+    "lint-staged": "^12.4.1",
     "prettier": "^2.6.2",
     "rollup": "^2.72.0",
+    "rollup-plugin-typescript2": "^0.31.2",
+    "sort-package-json": "^1.57.0",
     "ts-jest": "^28.0.1",
     "typedoc": "^0.22.15",
     "typedoc-plugin-markdown": "^3.12.1",
