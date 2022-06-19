@@ -16,6 +16,7 @@ import {
   checkOneOf,
   checkPrimitive,
   checkRequiredRule,
+  checkStringAsBigInt,
   checkStringAsNumber,
   checkStringRules,
   createBigIntSafely,
@@ -304,17 +305,43 @@ describe('checkExistenceRules', () => {
   });
 });
 
+describe('checkStringAsNumber', () => {
+  const args: Omit<Arg<StringRules, string>, 'value'> = {
+    type: 'string',
+    rule: { asNumber: {} },
+    path: [],
+  };
+  test('"10"', () => expect(checkStringAsNumber({ ...args, value: '10' })).toEqual([]));
+  test('"text"', () =>
+    expect(checkStringAsNumber({ ...args, value: 'text' })).toEqual([
+      {
+        code: 'asNumber',
+        path: [],
+        rule: { name: 'asNumber', value: {} },
+        value: 'text',
+      },
+    ]));
+});
+
 describe('createBigIntSafely()', () => {
   test('"10"', () => expect(createBigIntSafely('10')).toBe(10n));
   test('"text"', () => expect(createBigIntSafely('text')).toBe(undefined));
 });
 
-describe('checkStringAsNumber', () => {
+describe('checkStringAsBigInt', () => {
   const args: Omit<Arg<StringRules, string>, 'value'> = {
     type: 'string',
-    rule: { asBoolean: {} },
+    rule: { asBigInt: {} },
     path: [],
   };
-  test('"10"', () => expect(checkStringAsNumber({ ...args, value: '10' })).toEqual([]));
-  test('"text"', () => expect(checkStringAsNumber({ ...args, value: 'text' })).toEqual([]));
+  test('"10"', () => expect(checkStringAsBigInt({ ...args, value: '10' })).toEqual([]));
+  test('"text"', () =>
+    expect(checkStringAsBigInt({ ...args, value: 'text' })).toEqual([
+      {
+        code: 'asBigInt',
+        path: [],
+        rule: { name: 'asBigInt', value: {} },
+        value: 'text',
+      },
+    ]));
 });
