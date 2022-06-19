@@ -1,11 +1,10 @@
 import { checkByType } from './check';
-import structuredCopy from './structured-copy';
 import { Check, Target } from './types/main';
 import { DefaultRules, RuleDef } from './types/rule-def';
 import { getType, objectKeys } from './util';
 
 const applyDefaultRulesToRuleDef = <T>(r: RuleDef<T>, conf: DefaultRules): RuleDef<T> => {
-  const rule = structuredCopy(r);
+  const rule = structuredClone(r);
   if (rule.type === 'ignore') return rule;
   if (conf.existence) {
     objectKeys(conf.existence).forEach((key) => {
@@ -77,7 +76,7 @@ const target =
 export const createValidator = <T>(ruleDef: RuleDef<T>, defaultRules: DefaultRules = {}) => {
   // TODO: ts-jest doesn't have a structuredClone().
   // const rule = applyDefaultRulesToRuleDef(structuredClone(ruleDef), defaultRules) as RuleDef<T>;
-  const rule = applyDefaultRulesToRuleDef(structuredCopy(ruleDef), defaultRules) as RuleDef<T>;
+  const rule = applyDefaultRulesToRuleDef(structuredClone(ruleDef), defaultRules) as RuleDef<T>;
   return {
     check: check(rule),
     target: target(rule),
