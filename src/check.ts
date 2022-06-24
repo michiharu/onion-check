@@ -258,8 +258,13 @@ export const checkStringAsBigInt: CheckStringRules = (arg) => {
 
 export const checkStringLength: CheckStringRules = (arg) => {
   if (arg.rule.length === undefined) return [];
-  const { rule, value } = arg;
-  return checkPrimitive({ ...arg, rule: rule.length, value: value.length });
+  const { rule, value, path } = arg;
+  return checkPrimitive({
+    ...arg,
+    rule: rule.length,
+    value: value.length,
+    path: [...path, value, 'length'],
+  });
 };
 
 export const checkStringRules: CheckStringRules = (arg) =>

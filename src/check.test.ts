@@ -18,6 +18,7 @@ import {
   checkRequiredRule,
   checkStringAsBigInt,
   checkStringAsNumber,
+  checkStringLength,
   checkStringRules,
   createBigIntSafely,
   createErrorResult,
@@ -342,6 +343,24 @@ describe('checkStringAsBigInt', () => {
         path: [],
         rule: { name: 'asBigInt', value: {} },
         value: 'text',
+      },
+    ]));
+});
+
+describe('checkStringLength', () => {
+  const args: Omit<Arg<StringRules, string>, 'value'> = {
+    type: 'string',
+    rule: { length: { le: 5 } },
+    path: [],
+  };
+  test('"abcde"', () => expect(checkStringLength({ ...args, value: 'abcde' })).toEqual([]));
+  test('"abcdef"', () =>
+    expect(checkStringLength({ ...args, value: 'abcdef' })).toEqual([
+      {
+        code: 'le',
+        path: ['abcdef', 'length'],
+        rule: { name: 'le', value: 5 },
+        value: 6,
       },
     ]));
 });
