@@ -263,7 +263,7 @@ export const checkStringLength: CheckStringRules = (arg) => {
     ...arg,
     rule: rule.length,
     value: value.length,
-    path: [...path, value, 'length'],
+    path: [...path, 'length'],
   });
 };
 

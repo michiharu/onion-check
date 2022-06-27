@@ -16,6 +16,7 @@ import {
   checkOneOf,
   checkPrimitive,
   checkRequiredRule,
+  checkString,
   checkStringAsBigInt,
   checkStringAsNumber,
   checkStringLength,
@@ -358,9 +359,82 @@ describe('checkStringLength', () => {
     expect(checkStringLength({ ...args, value: 'abcdef' })).toEqual([
       {
         code: 'le',
-        path: ['abcdef', 'length'],
+        path: ['length'],
         rule: { name: 'le', value: 5 },
         value: 6,
+      },
+    ]));
+});
+
+describe('checkStringRules', () => {
+  const args: Omit<Arg<StringRules, string>, 'value'> = {
+    type: 'string',
+    rule: { ne: 'abcdef', length: { le: 5 } },
+    path: [],
+  };
+  test('"abcde"', () => expect(checkStringRules({ ...args, value: 'abcde' })).toEqual([]));
+  test('"abcdef"', () =>
+    expect(checkStringRules({ ...args, value: 'abcdef' })).toEqual([
+      {
+        code: 'ne',
+        path: [],
+        rule: { name: 'ne', value: 'abcdef' },
+        value: 'abcdef',
+      },
+      {
+        code: 'le',
+        path: ['length'],
+        rule: { name: 'le', value: 5 },
+        value: 6,
+      },
+    ]));
+});
+
+describe('checkString', () => {
+  const args: Omit<Arg<StringRuleDef, string>, 'value'> = {
+    type: 'string',
+    rule: { type: 'string', ne: 'abcdef', length: { le: 5 } },
+    path: [],
+  };
+  test('"abcde"', () => expect(checkString({ ...args, value: 'abcde' })).toEqual([]));
+  test('"abcdef"', () =>
+    expect(checkString({ ...args, value: 'abcdef' })).toEqual([
+      {
+        code: 'ne',
+        path: [],
+        rule: { name: 'ne', value: 'abcdef' },
+        value: 'abcdef',
+        label: undefined,
+      },
+      {
+        code: 'le',
+        path: ['length'],
+        rule: { name: 'le', value: 5 },
+        value: 6,
+        label: undefined,
+      },
+    ]));
+  const args2: Omit<Arg<StringRuleDef, string>, 'value'> = {
+    type: 'string',
+    rule: { type: 'string', or: [{ eq: 'abcde' }, { length: { lt: 2 } }] },
+    path: [],
+  };
+  test('"abcde"(or)', () => expect(checkString({ ...args2, value: 'abcde' })).toEqual([]));
+  test('"abcdef"(or)', () =>
+    expect(checkString({ ...args2, value: 'abcdef' })).toEqual([
+      {
+        code: 'eq',
+        path: [],
+        rule: { name: 'eq', value: 'abcde' },
+        value: 'abcdef',
+        label: undefined,
+      },
+      {
+        code: 'lt',
+        path: ['length'],
+        rule: { name: 'lt', value: 2 },
+        value: 6,
+        label: undefined,
       },
     ]));
 });
